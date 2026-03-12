@@ -1,3 +1,5 @@
+import { users } from "./config/mongoCollections.js";
+
 /**
  * Used for throwing consistent errors up to routes.
  *
@@ -51,8 +53,19 @@ export const isValidEmail = (val) => {
  * @param {*} val
  * @returns {String}
  */
-export const isValidDisplayName = (val) => {
-    val = isValidString(val);
+export const isValidDisplayName = async (val) => {
+    const displayName = isValidString(val);
+
+    const usersCol = await users();
+    const existing = await usersCol.findOne({
+        display_name: displayName,
+    });
+    if (existing) {
+        throw {
+            status: 409,
+            msg: `Display name ${displayName} is already taken`,
+        };
+    }
 
     if (val.length < 2) {
         throwError(
