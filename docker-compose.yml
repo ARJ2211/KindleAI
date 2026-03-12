@@ -24,9 +24,8 @@ services:
   mongo:
     image: mongo:latest
     restart: always
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: password
+    ports:
+      - "27017:27017"
 
   # --INDIVIDUAL RUN COMMAND: docker compose up backend
   backend:
@@ -39,8 +38,8 @@ services:
       - "3000:3000"
     environment:
       PORT: 3000
-      MONGO_URL: mongodb://host.docker.internal:27017/
       MONGO_DB: KindleAI
+      MONGO_URL: mongodb://mongo:27017/
       REDIS_URL: redis://redis:6379
       QDRANT_URL: http://qdrant:6333
     volumes:
