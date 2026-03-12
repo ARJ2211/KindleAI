@@ -1,5 +1,6 @@
 import express from "express";
 import admin from "firebase-admin";
+import cors from "cors";
 import configRoutes from "./routes/index.js";
 
 const app = express();
@@ -10,6 +11,7 @@ export const fireBaseApp = admin.initializeApp({
 });
 
 // ================ EXPRESS ================
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
