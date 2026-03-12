@@ -38,10 +38,10 @@ export async function embedText(text) {
  * Use this for book chunks during ingestion.
  *
  * @param {string[]} texts
- * @param {number} batchSize default 8
+ * @param {number} batchSize default 16
  * @returns {number[][]} vector embedding
  */
-export async function embedBatch(texts, batchSize = 8) {
+export async function embedBatch(texts, batchSize = 16) {
     const model = await getEmbedder();
     const vectors = [];
 

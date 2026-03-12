@@ -7,7 +7,8 @@
   "type": "module",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test-ingest": "node embedder/injest_test.js"
   },
   "dependencies": {
     "axios": "^1.13.6",

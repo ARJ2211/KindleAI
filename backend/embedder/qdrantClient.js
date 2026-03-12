@@ -5,18 +5,17 @@ import { VECTOR_DIM } from "./embedder.js";
 const QDRANT_URL = process.env.QDRANT_URL || "http://localhost:6333";
 const COLLECTION = "book_chunks";
 
-let _client = null;
-
+/**
+ * Resort to a new client (Prev method caused Qdrant to close connections)
+ * @returns {QdrantClient}
+ */
 function getClient() {
-    if (!_client) {
-        _client = new QdrantClient({ url: QDRANT_URL });
-    }
-    return _client;
+    return new QdrantClient({ url: QDRANT_URL, timeout: 30000 });
 }
 
 /**
  * Ensure the book_chunks collection exists in Qdrant.
- * Safe to call multiple times skips if already created.
+ * Safe to call multiple times, skips if already created.
  */
 export async function ensureCollection() {
     const client = getClient();
@@ -65,13 +64,16 @@ export async function upsertBookChunks(bookId, chunks, vectors) {
         },
     }));
 
-    // Qdrant accepts up to ~100 points per upsert comfortably; batch larger sets
     const BATCH = 100;
     for (let i = 0; i < points.length; i += BATCH) {
         await client.upsert(COLLECTION, {
             wait: true,
             points: points.slice(i, i + BATCH),
         });
+        // Small pause between batches to avoid connection exhaustion
+        if (i + BATCH < points.length) {
+            await new Promise((r) => setTimeout(r, 100));
+        }
     }
 
     console.log(`[qdrant] Upserted ${points.length} chunks for book ${bookId}`);
@@ -106,7 +108,7 @@ export async function searchBook(queryVector, bookId, topK = 5) {
 }
 
 /**
- * Delete all vectors for a book (useful if re-indexing).
+ * Delete all vectors for a book (useful for reindexing).
  */
 export async function deleteBookVectors(bookId) {
     const client = getClient();
