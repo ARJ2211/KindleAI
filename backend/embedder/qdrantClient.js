@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { QdrantClient } from "@qdrant/js-client-rest";
 import { VECTOR_DIM } from "./embedder.js";
 
@@ -15,7 +16,7 @@ function getClient() {
 
 /**
  * Ensure the book_chunks collection exists in Qdrant.
- * Safe to call multiple times — skips if already created.
+ * Safe to call multiple times skips if already created.
  */
 export async function ensureCollection() {
     const client = getClient();
@@ -44,16 +45,16 @@ export async function ensureCollection() {
 /**
  * Upsert chunk vectors for a specific book.
  *
- * @param {string} bookId  MongoDB Object ID for the book
+ * @param {string} bookId MongoDB ObjectId string for the book
  * @param {{ text: string, chapterId: string, chapterTitle: string, chunkIndex: number }[]} chunks
- * @param {number[][]} vectors Array of embeddings
+ * @param {number[][]} vectors matching array of embedding vectors
  */
 export async function upsertBookChunks(bookId, chunks, vectors) {
     const client = getClient();
     await ensureCollection();
 
     const points = chunks.map((chunk, i) => ({
-        id: generatePointId(bookId, i),
+        id: randomUUID(),
         vector: vectors[i],
         payload: {
             bookId,
@@ -64,6 +65,7 @@ export async function upsertBookChunks(bookId, chunks, vectors) {
         },
     }));
 
+    // Qdrant accepts up to ~100 points per upsert comfortably; batch larger sets
     const BATCH = 100;
     for (let i = 0; i < points.length; i += BATCH) {
         await client.upsert(COLLECTION, {
@@ -81,7 +83,7 @@ export async function upsertBookChunks(bookId, chunks, vectors) {
  * @param {number[]} queryVector embedding of the user's question
  * @param {string} bookId limit results to this book
  * @param {number} topK how many chunks to return (default 5)
- * @returns {{ text: string, chapterTitle: string, score: number }[]}
+ * @returns {{ text: string, chapterTitle: string, chapterId: string, score: number }[]}
  */
 export async function searchBook(queryVector, bookId, topK = 5) {
     const client = getClient();
@@ -104,7 +106,7 @@ export async function searchBook(queryVector, bookId, topK = 5) {
 }
 
 /**
- * Delete all vectors for a book.
+ * Delete all vectors for a book (useful if re-indexing).
  */
 export async function deleteBookVectors(bookId) {
     const client = getClient();
@@ -117,22 +119,4 @@ export async function deleteBookVectors(bookId) {
     });
 
     console.log(`[qdrant] Deleted all chunks for book ${bookId}`);
-}
-
-/**
- * We hash "bookId:chunkIdx" with MD5 and format it as a UUID for qdrant.
- */
-function generatePointId(bookId, chunkIdx) {
-    const hex = crypto
-        .createHash("md5")
-        .update(`${bookId}:${chunkIdx}`)
-        .digest("hex");
-
-    return [
-        hex.slice(0, 8),
-        hex.slice(8, 12),
-        hex.slice(12, 16),
-        hex.slice(16, 20),
-        hex.slice(20, 32),
-    ].join("-");
 }
