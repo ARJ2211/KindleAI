@@ -17,17 +17,6 @@ export async function createUser(firebaseUid, email, displayName) {
 
     const usersCol = await users();
 
-    // Check if display name is already taken
-    const existing = await usersCol.findOne({
-        display_name: displayName,
-    });
-    if (existing) {
-        throw {
-            status: 409,
-            msg: `Display name ${displayName} is already taken`,
-        };
-    }
-
     const newUser = {
         _id: firebaseUid,
         email: email,

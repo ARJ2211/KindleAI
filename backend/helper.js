@@ -50,6 +50,7 @@ export const isValidEmail = (val) => {
  * Check if the value is a valid display name.
  * Must be between 2 and 20 characters.
  *
+ * THIS ALSO CHECKS FOR DUPLICATE USERNAMES!
  * @param {*} val
  * @returns {String}
  */
