@@ -22,7 +22,7 @@ async function getEmbedder() {
 
 /**
  * Embed a single query string (adds the BGE query prefix).
- * Use this for user questions in the chat.
+ * We can use this for user questions in the chat.
  */
 export async function embedText(text) {
     const model = await getEmbedder();
