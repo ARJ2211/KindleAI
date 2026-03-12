@@ -146,3 +146,6 @@ vite.config.ts.timestamp-*
 
 # Secrets
 serviceAccountKey.json
+
+# TMUX panes
+mysession.sh

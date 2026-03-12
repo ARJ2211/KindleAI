@@ -1,6 +1,7 @@
 import { Router } from "express";
-import { fireBaseAdmin } from "../app.js";
 
+import { fireBaseApp } from "../app.js";
+import { setCache } from "../config/redisClient.js";
 import * as helper from "../helper.js";
 import * as userData from "../data/userData.js";
 
@@ -15,7 +16,7 @@ router.post("/signup", async (req, res) => {
             req.body?.displayName,
         );
 
-        const userResponse = await fireBaseAdmin.auth().createUser({
+        const userResponse = await fireBaseApp.auth().createUser({
             email: email,
             password: password,
             emailVerified: false,
@@ -28,8 +29,12 @@ router.post("/signup", async (req, res) => {
             displayName,
         );
 
+        // Set redis cache for user
+        await setCache(`user:${createdUser._id}`, createdUser);
+
         return res.status(200).json(createdUser);
     } catch (e) {
+        console.log(e);
         if (e?.code === "auth/email-already-exists") {
             return res.status(400).json({
                 msg: e.message,

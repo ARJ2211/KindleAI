@@ -5,7 +5,7 @@ import configRoutes from "./routes/index.js";
 const app = express();
 const PORT = 3000;
 
-export const fireBaseAdmin = admin.initializeApp({
+export const fireBaseApp = admin.initializeApp({
     credential: admin.credential.cert("./serviceAccountKey.json"),
 });
 
