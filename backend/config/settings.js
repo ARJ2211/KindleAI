@@ -1,5 +1,4 @@
 export const mongoConfig = {
-    // serverUrl: "mongodb://localhost:27017/",
-    serverUrl: "mongodb://host.docker.internal:27017/",
-    database: "KindleAI",
+    serverUrl: process.env.MONGO_URL || "mongodb://localhost:27017/",
+    database: process.env.MONGO_DB || "KindleAI",
 };
