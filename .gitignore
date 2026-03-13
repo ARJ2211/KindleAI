@@ -144,7 +144,7 @@ vite.config.ts.timestamp-*
 # Any test files / dir
 *test*
 
-# Secrets
+# Secrets and firebase
 serviceAccountKey.json
 
 # TMUX panes
