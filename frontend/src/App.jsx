@@ -1,118 +1,50 @@
-import { useState } from "react";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "./firebase/config.js";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
-import axios from "axios";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import LandingPage from "./pages/LandingPage.jsx";
+import SignUpPage from "./pages/SignUpPage.jsx";
+import SignInPage from "./pages/SignInPage.jsx";
+import HomePage from "./pages/HomePage.jsx";
 
-const API = "http://localhost:3000";
-
-function AuthTest() {
-    const { user, loading, getToken } = useAuth();
-
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [displayName, setDisplayName] = useState("");
-    const [result, setResult] = useState(null);
-    const [error, setError] = useState(null);
-
-    async function handleSignUp() {
-        setError(null);
-        setResult(null);
-        try {
-            const res = await axios.post(`${API}/user/signup`, {
-                email,
-                password,
-                displayName,
-            });
-            setResult(res.data);
-            await signInWithEmailAndPassword(auth, email, password);
-        } catch (err) {
-            setError(err.response?.data?.msg || err.message);
-        }
-    }
-
-    async function handleSignIn() {
-        setError(null);
-        setResult(null);
-        try {
-            await signInWithEmailAndPassword(auth, email, password);
-            setResult("Signed in!");
-        } catch (err) {
-            setError(err.message);
-        }
-    }
-
-    async function handleGetMe() {
-        setError(null);
-        setResult(null);
-        try {
-            const token = await getToken();
-            const res = await axios.get(`${API}/user/me`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            setResult(res.data);
-        } catch (err) {
-            setError(err.response?.data?.msg || err.message);
-        }
-    }
-
-    async function handleSignOut() {
-        await auth.signOut();
-        setResult(null);
-        setError(null);
-    }
+function AppRoutes() {
+    const { user, loading } = useAuth();
 
     if (loading) return <p>Loading...</p>;
 
     return (
-        <div>
-            <h2>Auth Test</h2>
-            <p>
-                Status: {user ? `Signed in as ${user.email}` : "Not signed in"}
-            </p>
-
-            {!user ? (
-                <div>
-                    <input
-                        placeholder="Email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                    />
-                    <br />
-                    <input
-                        placeholder="Password"
-                        type="text"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                    />
-                    <br />
-                    <input
-                        placeholder="Display Name"
-                        value={displayName}
-                        onChange={(e) => setDisplayName(e.target.value)}
-                    />
-                    <br />
-                    <button onClick={handleSignUp}>Sign Up</button>
-                    <button onClick={handleSignIn}>Sign In</button>
-                </div>
-            ) : (
-                <div>
-                    <button onClick={handleGetMe}>GET /user/me</button>
-                    <button onClick={handleSignOut}>Sign Out</button>
-                </div>
-            )}
-
-            {error && <p style={{ color: "red" }}>{error}</p>}
-            {result && <pre>{JSON.stringify(result, null, 2)}</pre>}
-        </div>
+        <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route
+                path="/signup"
+                element={
+                    user ? <Navigate to="/home" replace /> : <SignUpPage />
+                }
+            />
+            <Route
+                path="/signin"
+                element={
+                    user ? <Navigate to="/home" replace /> : <SignInPage />
+                }
+            />
+            <Route
+                path="/home"
+                element={
+                    <ProtectedRoute>
+                        <HomePage />
+                    </ProtectedRoute>
+                }
+            />
+        </Routes>
     );
 }
 
 function App() {
     return (
-        <AuthProvider>
-            <AuthTest />
-        </AuthProvider>
+        <BrowserRouter>
+            <AuthProvider>
+                <AppRoutes />
+            </AuthProvider>
+        </BrowserRouter>
     );
 }
 
