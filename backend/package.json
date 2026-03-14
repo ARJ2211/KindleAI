@@ -12,6 +12,7 @@
     "test-ingest": "node embedder/injest_test.js",
     "test-booklookup": "node utils/lookup_book_test.js",
     "test-hash": "node utils/hash_test.js",
+    "test-worker": "node workers/worker_test.js",
     "dev": "nodemon app.js"
   },
   "dependencies": {
