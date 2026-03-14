@@ -1,7 +1,7 @@
 import { users } from "./config/mongoCollections.js";
 
 /**
- * Used for throwing consistent errors up to routes.
+ * Used for throwing errors up to routes.
  *
  * @param {Number} status
  * @param {String} msg
