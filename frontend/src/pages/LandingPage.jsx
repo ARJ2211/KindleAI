@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import { auth } from "../firebase/config.js";
+
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Box from "@mui/material/Box";
@@ -400,10 +402,20 @@ function HoloBook() {
             const rect = el.getBoundingClientRect();
             const x = (e.clientX - rect.left) / rect.width - 0.5;
             const y = (e.clientY - rect.top) / rect.height - 0.5;
-            gsap.to(el, { rotateY: x * 18, rotateX: -y * 12, duration: 0.6, ease: "power2.out" });
+            gsap.to(el, {
+                rotateY: x * 18,
+                rotateX: -y * 12,
+                duration: 0.6,
+                ease: "power2.out",
+            });
         };
         const leave = () => {
-            gsap.to(el, { rotateY: 0, rotateX: 0, duration: 1.2, ease: "elastic.out(1, 0.5)" });
+            gsap.to(el, {
+                rotateY: 0,
+                rotateX: 0,
+                duration: 1.2,
+                ease: "elastic.out(1, 0.5)",
+            });
         };
         el.addEventListener("mousemove", move);
         el.addEventListener("mouseleave", leave);
@@ -419,11 +431,17 @@ function HoloBook() {
                 <defs>
                     <filter id="glow">
                         <feGaussianBlur stdDeviation="4" result="b" />
-                        <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+                        <feMerge>
+                            <feMergeNode in="b" />
+                            <feMergeNode in="SourceGraphic" />
+                        </feMerge>
                     </filter>
                     <filter id="glowMd">
                         <feGaussianBlur stdDeviation="8" result="b" />
-                        <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+                        <feMerge>
+                            <feMergeNode in="b" />
+                            <feMergeNode in="SourceGraphic" />
+                        </feMerge>
                     </filter>
                     <linearGradient id="pageL" x1="0" y1="0" x2="1" y2="0">
                         <stop offset="0%" stopColor="#07101f" />
@@ -452,149 +470,660 @@ function HoloBook() {
                 </defs>
 
                 {/* Drop shadow */}
-                <ellipse cx="240" cy="348" rx="170" ry="14" fill="rgba(0,224,255,0.07)" filter="url(#glowMd)" />
+                <ellipse
+                    cx="240"
+                    cy="348"
+                    rx="170"
+                    ry="14"
+                    fill="rgba(0,224,255,0.07)"
+                    filter="url(#glowMd)"
+                />
 
                 {/* Left page */}
-                <path d="M 52 36 L 232 24 L 232 326 L 52 316 Z" fill="url(#pageL)" stroke="rgba(0,224,255,0.18)" strokeWidth="0.7" />
+                <path
+                    d="M 52 36 L 232 24 L 232 326 L 52 316 Z"
+                    fill="url(#pageL)"
+                    stroke="rgba(0,224,255,0.18)"
+                    strokeWidth="0.7"
+                />
                 {/* Right page */}
-                <path d="M 248 24 L 428 36 L 428 316 L 248 326 Z" fill="url(#pageR)" stroke="rgba(0,224,255,0.18)" strokeWidth="0.7" />
+                <path
+                    d="M 248 24 L 428 36 L 428 316 L 248 326 Z"
+                    fill="url(#pageR)"
+                    stroke="rgba(0,224,255,0.18)"
+                    strokeWidth="0.7"
+                />
 
                 {/* Spine bloom */}
-                <rect x="200" y="24" width="80" height="302" fill="url(#spineBloom)" />
+                <rect
+                    x="200"
+                    y="24"
+                    width="80"
+                    height="302"
+                    fill="url(#spineBloom)"
+                />
                 {/* Spine line */}
-                <line x1="240" y1="23" x2="240" y2="327" stroke="url(#spineG)" strokeWidth="2.5" filter="url(#glow)" />
+                <line
+                    x1="240"
+                    y1="23"
+                    x2="240"
+                    y2="327"
+                    stroke="url(#spineG)"
+                    strokeWidth="2.5"
+                    filter="url(#glow)"
+                />
                 {/* Top edge glow */}
-                <path d="M 52 36 L 232 24 L 248 24 L 428 36" stroke="url(#topEdge)" strokeWidth="1.2" />
+                <path
+                    d="M 52 36 L 232 24 L 248 24 L 428 36"
+                    stroke="url(#topEdge)"
+                    strokeWidth="1.2"
+                />
 
                 {/* ── LEFT PAGE: Reading content ── */}
                 {/* Chapter label */}
-                <text x="70" y="62" fontFamily="JetBrains Mono, monospace" fontSize="6" fill="rgba(0,224,255,0.45)" letterSpacing="2.5">CHAPTER 12</text>
+                <text
+                    x="70"
+                    y="62"
+                    fontFamily="JetBrains Mono, monospace"
+                    fontSize="6"
+                    fill="rgba(0,224,255,0.45)"
+                    letterSpacing="2.5"
+                >
+                    CHAPTER 12
+                </text>
                 {/* Chapter title */}
-                <rect x="70" y="70" width="140" height="3" rx="1.5" fill="rgba(255,255,255,0.65)" />
-                <rect x="70" y="78" width="95" height="2" rx="1" fill="rgba(255,255,255,0.3)" />
+                <rect
+                    x="70"
+                    y="70"
+                    width="140"
+                    height="3"
+                    rx="1.5"
+                    fill="rgba(255,255,255,0.65)"
+                />
+                <rect
+                    x="70"
+                    y="78"
+                    width="95"
+                    height="2"
+                    rx="1"
+                    fill="rgba(255,255,255,0.3)"
+                />
 
                 {/* Body text lines */}
-                {[88,95,102,109,116,123,130].map((y, i) => (
-                    <rect key={i} x="70" y={y} width={[148,136,152,128,144,138,150][i]} height="1.5" rx="0.75" fill={`rgba(255,255,255,${[0.13,0.10,0.13,0.09,0.12,0.10,0.13][i]})`} />
+                {[88, 95, 102, 109, 116, 123, 130].map((y, i) => (
+                    <rect
+                        key={i}
+                        x="70"
+                        y={y}
+                        width={[148, 136, 152, 128, 144, 138, 150][i]}
+                        height="1.5"
+                        rx="0.75"
+                        fill={`rgba(255,255,255,${[0.13, 0.1, 0.13, 0.09, 0.12, 0.1, 0.13][i]})`}
+                    />
                 ))}
 
                 {/* Highlighted passage */}
-                <rect x="70" y="140" width="148" height="22" rx="3" fill="rgba(0,224,255,0.07)" stroke="rgba(0,224,255,0.15)" strokeWidth="0.6" />
-                <rect x="70" y="143" width="138" height="1.8" rx="0.9" fill="rgba(0,224,255,0.4)" />
-                <rect x="70" y="148" width="144" height="1.8" rx="0.9" fill="rgba(0,224,255,0.3)" />
-                <rect x="70" y="153" width="112" height="1.8" rx="0.9" fill="rgba(0,224,255,0.22)" />
+                <rect
+                    x="70"
+                    y="140"
+                    width="148"
+                    height="22"
+                    rx="3"
+                    fill="rgba(0,224,255,0.07)"
+                    stroke="rgba(0,224,255,0.15)"
+                    strokeWidth="0.6"
+                />
+                <rect
+                    x="70"
+                    y="143"
+                    width="138"
+                    height="1.8"
+                    rx="0.9"
+                    fill="rgba(0,224,255,0.4)"
+                />
+                <rect
+                    x="70"
+                    y="148"
+                    width="144"
+                    height="1.8"
+                    rx="0.9"
+                    fill="rgba(0,224,255,0.3)"
+                />
+                <rect
+                    x="70"
+                    y="153"
+                    width="112"
+                    height="1.8"
+                    rx="0.9"
+                    fill="rgba(0,224,255,0.22)"
+                />
                 {/* Highlight margin mark */}
-                <rect x="64" y="140" width="3" height="22" rx="1.5" fill="rgba(0,224,255,0.6)" filter="url(#glow)" />
+                <rect
+                    x="64"
+                    y="140"
+                    width="3"
+                    height="22"
+                    rx="1.5"
+                    fill="rgba(0,224,255,0.6)"
+                    filter="url(#glow)"
+                />
 
                 {/* More body text */}
-                {[170,177,184,191,198,205,212,219].map((y, i) => (
-                    <rect key={i} x="70" y={y} width={[142,130,150,118,140,136,148,100][i]} height="1.5" rx="0.75" fill={`rgba(255,255,255,${[0.10,0.08,0.11,0.07,0.10,0.09,0.11,0.06][i]})`} />
+                {[170, 177, 184, 191, 198, 205, 212, 219].map((y, i) => (
+                    <rect
+                        key={i}
+                        x="70"
+                        y={y}
+                        width={[142, 130, 150, 118, 140, 136, 148, 100][i]}
+                        height="1.5"
+                        rx="0.75"
+                        fill={`rgba(255,255,255,${[0.1, 0.08, 0.11, 0.07, 0.1, 0.09, 0.11, 0.06][i]})`}
+                    />
                 ))}
 
                 {/* Paragraph gap + more lines */}
-                {[232,239,246,253,260,267].map((y, i) => (
-                    <rect key={i} x="70" y={y} width={[144,132,150,126,142,88][i]} height="1.5" rx="0.75" fill={`rgba(255,255,255,${[0.09,0.07,0.10,0.06,0.08,0.05][i]})`} />
+                {[232, 239, 246, 253, 260, 267].map((y, i) => (
+                    <rect
+                        key={i}
+                        x="70"
+                        y={y}
+                        width={[144, 132, 150, 126, 142, 88][i]}
+                        height="1.5"
+                        rx="0.75"
+                        fill={`rgba(255,255,255,${[0.09, 0.07, 0.1, 0.06, 0.08, 0.05][i]})`}
+                    />
                 ))}
 
                 {/* Page number */}
-                <text x="152" y="312" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill="rgba(255,255,255,0.14)" textAnchor="middle">142</text>
+                <text
+                    x="152"
+                    y="312"
+                    fontFamily="JetBrains Mono, monospace"
+                    fontSize="6.5"
+                    fill="rgba(255,255,255,0.14)"
+                    textAnchor="middle"
+                >
+                    142
+                </text>
 
                 {/* ── RIGHT PAGE: AI Chat ── */}
                 {/* Header bar */}
-                <rect x="256" y="32" width="156" height="18" rx="4" fill="rgba(0,224,255,0.05)" stroke="rgba(0,224,255,0.1)" strokeWidth="0.6" />
-                <circle cx="266" cy="41" r="3.5" fill="rgba(0,224,255,0.15)" stroke="rgba(0,224,255,0.4)" strokeWidth="0.8">
-                    <animate attributeName="r" values="3.5;4.2;3.5" dur="3s" repeatCount="indefinite" />
+                <rect
+                    x="256"
+                    y="32"
+                    width="156"
+                    height="18"
+                    rx="4"
+                    fill="rgba(0,224,255,0.05)"
+                    stroke="rgba(0,224,255,0.1)"
+                    strokeWidth="0.6"
+                />
+                <circle
+                    cx="266"
+                    cy="41"
+                    r="3.5"
+                    fill="rgba(0,224,255,0.15)"
+                    stroke="rgba(0,224,255,0.4)"
+                    strokeWidth="0.8"
+                >
+                    <animate
+                        attributeName="r"
+                        values="3.5;4.2;3.5"
+                        dur="3s"
+                        repeatCount="indefinite"
+                    />
                 </circle>
-                <rect x="274" y="38.5" width="42" height="2" rx="1" fill="rgba(0,224,255,0.5)" />
-                <rect x="274" y="43" width="28" height="1.5" rx="0.75" fill="rgba(0,224,255,0.25)" />
-                <rect x="392" y="37" width="12" height="1.5" rx="0.75" fill="rgba(255,255,255,0.1)" />
-                <rect x="392" y="41" width="12" height="1.5" rx="0.75" fill="rgba(255,255,255,0.1)" />
-                <rect x="392" y="45" width="12" height="1.5" rx="0.75" fill="rgba(255,255,255,0.1)" />
+                <rect
+                    x="274"
+                    y="38.5"
+                    width="42"
+                    height="2"
+                    rx="1"
+                    fill="rgba(0,224,255,0.5)"
+                />
+                <rect
+                    x="274"
+                    y="43"
+                    width="28"
+                    height="1.5"
+                    rx="0.75"
+                    fill="rgba(0,224,255,0.25)"
+                />
+                <rect
+                    x="392"
+                    y="37"
+                    width="12"
+                    height="1.5"
+                    rx="0.75"
+                    fill="rgba(255,255,255,0.1)"
+                />
+                <rect
+                    x="392"
+                    y="41"
+                    width="12"
+                    height="1.5"
+                    rx="0.75"
+                    fill="rgba(255,255,255,0.1)"
+                />
+                <rect
+                    x="392"
+                    y="45"
+                    width="12"
+                    height="1.5"
+                    rx="0.75"
+                    fill="rgba(255,255,255,0.1)"
+                />
 
                 {/* Divider */}
-                <line x1="256" y1="58" x2="412" y2="58" stroke="rgba(0,224,255,0.08)" strokeWidth="0.8" />
+                <line
+                    x1="256"
+                    y1="58"
+                    x2="412"
+                    y2="58"
+                    stroke="rgba(0,224,255,0.08)"
+                    strokeWidth="0.8"
+                />
 
                 {/* User message bubble */}
-                <rect x="316" y="68" width="90" height="26" rx="9" fill="rgba(123,47,255,0.18)" stroke="rgba(123,47,255,0.3)" strokeWidth="0.7" />
-                <rect x="325" y="74" width="72" height="1.8" rx="0.9" fill="rgba(255,255,255,0.5)" />
-                <rect x="325" y="79" width="60" height="1.8" rx="0.9" fill="rgba(255,255,255,0.3)" />
-                <rect x="325" y="84" width="44" height="1.8" rx="0.9" fill="rgba(255,255,255,0.2)" />
+                <rect
+                    x="316"
+                    y="68"
+                    width="90"
+                    height="26"
+                    rx="9"
+                    fill="rgba(123,47,255,0.18)"
+                    stroke="rgba(123,47,255,0.3)"
+                    strokeWidth="0.7"
+                />
+                <rect
+                    x="325"
+                    y="74"
+                    width="72"
+                    height="1.8"
+                    rx="0.9"
+                    fill="rgba(255,255,255,0.5)"
+                />
+                <rect
+                    x="325"
+                    y="79"
+                    width="60"
+                    height="1.8"
+                    rx="0.9"
+                    fill="rgba(255,255,255,0.3)"
+                />
+                <rect
+                    x="325"
+                    y="84"
+                    width="44"
+                    height="1.8"
+                    rx="0.9"
+                    fill="rgba(255,255,255,0.2)"
+                />
 
                 {/* AI response bubble */}
-                <rect x="256" y="106" width="112" height="46" rx="9" fill="rgba(0,224,255,0.06)" stroke="rgba(0,224,255,0.18)" strokeWidth="0.7" />
+                <rect
+                    x="256"
+                    y="106"
+                    width="112"
+                    height="46"
+                    rx="9"
+                    fill="rgba(0,224,255,0.06)"
+                    stroke="rgba(0,224,255,0.18)"
+                    strokeWidth="0.7"
+                />
                 <circle cx="265" cy="114" r="2.5" fill="rgba(0,224,255,0.7)">
-                    <animate attributeName="opacity" values="0.7;1;0.7" dur="2s" repeatCount="indefinite" />
+                    <animate
+                        attributeName="opacity"
+                        values="0.7;1;0.7"
+                        dur="2s"
+                        repeatCount="indefinite"
+                    />
                 </circle>
-                <rect x="272" y="112.5" width="28" height="1.8" rx="0.9" fill="rgba(0,224,255,0.55)" />
-                <rect x="264" y="120" width="96" height="1.8" rx="0.9" fill="rgba(255,255,255,0.38)" />
-                <rect x="264" y="125.5" width="100" height="1.8" rx="0.9" fill="rgba(255,255,255,0.28)" />
-                <rect x="264" y="131" width="88" height="1.8" rx="0.9" fill="rgba(255,255,255,0.22)" />
-                <rect x="264" y="136.5" width="68" height="1.8" rx="0.9" fill="rgba(255,255,255,0.15)" />
-                <rect x="264" y="142" width="48" height="1.8" rx="0.9" fill="rgba(255,255,255,0.1)" />
+                <rect
+                    x="272"
+                    y="112.5"
+                    width="28"
+                    height="1.8"
+                    rx="0.9"
+                    fill="rgba(0,224,255,0.55)"
+                />
+                <rect
+                    x="264"
+                    y="120"
+                    width="96"
+                    height="1.8"
+                    rx="0.9"
+                    fill="rgba(255,255,255,0.38)"
+                />
+                <rect
+                    x="264"
+                    y="125.5"
+                    width="100"
+                    height="1.8"
+                    rx="0.9"
+                    fill="rgba(255,255,255,0.28)"
+                />
+                <rect
+                    x="264"
+                    y="131"
+                    width="88"
+                    height="1.8"
+                    rx="0.9"
+                    fill="rgba(255,255,255,0.22)"
+                />
+                <rect
+                    x="264"
+                    y="136.5"
+                    width="68"
+                    height="1.8"
+                    rx="0.9"
+                    fill="rgba(255,255,255,0.15)"
+                />
+                <rect
+                    x="264"
+                    y="142"
+                    width="48"
+                    height="1.8"
+                    rx="0.9"
+                    fill="rgba(255,255,255,0.1)"
+                />
 
                 {/* Source citation chip */}
-                <rect x="264" y="158" width="72" height="13" rx="6" fill="rgba(0,224,255,0.06)" stroke="rgba(0,224,255,0.22)" strokeWidth="0.7" />
-                <rect x="271" y="162" width="4" height="5" rx="1" fill="rgba(0,224,255,0.35)" />
-                <rect x="279" y="162.5" width="36" height="1.5" rx="0.75" fill="rgba(0,224,255,0.35)" />
-                <rect x="279" y="166" width="24" height="1.2" rx="0.6" fill="rgba(0,224,255,0.2)" />
-                <text x="326" y="167" fontFamily="JetBrains Mono, monospace" fontSize="5" fill="rgba(0,224,255,0.4)">p.142</text>
+                <rect
+                    x="264"
+                    y="158"
+                    width="72"
+                    height="13"
+                    rx="6"
+                    fill="rgba(0,224,255,0.06)"
+                    stroke="rgba(0,224,255,0.22)"
+                    strokeWidth="0.7"
+                />
+                <rect
+                    x="271"
+                    y="162"
+                    width="4"
+                    height="5"
+                    rx="1"
+                    fill="rgba(0,224,255,0.35)"
+                />
+                <rect
+                    x="279"
+                    y="162.5"
+                    width="36"
+                    height="1.5"
+                    rx="0.75"
+                    fill="rgba(0,224,255,0.35)"
+                />
+                <rect
+                    x="279"
+                    y="166"
+                    width="24"
+                    height="1.2"
+                    rx="0.6"
+                    fill="rgba(0,224,255,0.2)"
+                />
+                <text
+                    x="326"
+                    y="167"
+                    fontFamily="JetBrains Mono, monospace"
+                    fontSize="5"
+                    fill="rgba(0,224,255,0.4)"
+                >
+                    p.142
+                </text>
 
                 {/* Second user bubble */}
-                <rect x="322" y="182" width="84" height="22" rx="8" fill="rgba(123,47,255,0.18)" stroke="rgba(123,47,255,0.3)" strokeWidth="0.7" />
-                <rect x="330" y="188" width="66" height="1.8" rx="0.9" fill="rgba(255,255,255,0.45)" />
-                <rect x="330" y="193.5" width="48" height="1.8" rx="0.9" fill="rgba(255,255,255,0.25)" />
+                <rect
+                    x="322"
+                    y="182"
+                    width="84"
+                    height="22"
+                    rx="8"
+                    fill="rgba(123,47,255,0.18)"
+                    stroke="rgba(123,47,255,0.3)"
+                    strokeWidth="0.7"
+                />
+                <rect
+                    x="330"
+                    y="188"
+                    width="66"
+                    height="1.8"
+                    rx="0.9"
+                    fill="rgba(255,255,255,0.45)"
+                />
+                <rect
+                    x="330"
+                    y="193.5"
+                    width="48"
+                    height="1.8"
+                    rx="0.9"
+                    fill="rgba(255,255,255,0.25)"
+                />
 
                 {/* Typing indicator */}
-                <rect x="256" y="214" width="52" height="18" rx="9" fill="rgba(0,224,255,0.06)" stroke="rgba(0,224,255,0.15)" strokeWidth="0.7" />
+                <rect
+                    x="256"
+                    y="214"
+                    width="52"
+                    height="18"
+                    rx="9"
+                    fill="rgba(0,224,255,0.06)"
+                    stroke="rgba(0,224,255,0.15)"
+                    strokeWidth="0.7"
+                />
                 <circle cx="268" cy="223" r="2.8" fill="rgba(0,224,255,0.45)">
-                    <animate attributeName="opacity" values="0.45;1;0.45" dur="1.1s" begin="0s" repeatCount="indefinite" />
+                    <animate
+                        attributeName="opacity"
+                        values="0.45;1;0.45"
+                        dur="1.1s"
+                        begin="0s"
+                        repeatCount="indefinite"
+                    />
                 </circle>
                 <circle cx="279" cy="223" r="2.8" fill="rgba(0,224,255,0.45)">
-                    <animate attributeName="opacity" values="0.45;1;0.45" dur="1.1s" begin="0.35s" repeatCount="indefinite" />
+                    <animate
+                        attributeName="opacity"
+                        values="0.45;1;0.45"
+                        dur="1.1s"
+                        begin="0.35s"
+                        repeatCount="indefinite"
+                    />
                 </circle>
                 <circle cx="290" cy="223" r="2.8" fill="rgba(0,224,255,0.45)">
-                    <animate attributeName="opacity" values="0.45;1;0.45" dur="1.1s" begin="0.7s" repeatCount="indefinite" />
+                    <animate
+                        attributeName="opacity"
+                        values="0.45;1;0.45"
+                        dur="1.1s"
+                        begin="0.7s"
+                        repeatCount="indefinite"
+                    />
                 </circle>
 
                 {/* Divider */}
-                <line x1="256" y1="242" x2="412" y2="242" stroke="rgba(0,224,255,0.07)" strokeWidth="0.8" />
+                <line
+                    x1="256"
+                    y1="242"
+                    x2="412"
+                    y2="242"
+                    stroke="rgba(0,224,255,0.07)"
+                    strokeWidth="0.8"
+                />
 
                 {/* Sources section */}
-                <text x="256" y="255" fontFamily="JetBrains Mono, monospace" fontSize="5.5" fill="rgba(0,224,255,0.4)" letterSpacing="1.8">SOURCES</text>
-                <rect x="256" y="261" width="148" height="18" rx="5" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.06)" strokeWidth="0.6" />
-                <rect x="263" y="266" width="3.5" height="8" rx="1.2" fill="rgba(0,224,255,0.35)" />
-                <rect x="271" y="266.5" width="60" height="1.8" rx="0.9" fill="rgba(255,255,255,0.28)" />
-                <rect x="271" y="271" width="40" height="1.4" rx="0.7" fill="rgba(255,255,255,0.14)" />
-                <text x="384" y="272" fontFamily="JetBrains Mono, monospace" fontSize="5.5" fill="rgba(0,224,255,0.35)" textAnchor="end">p.142</text>
+                <text
+                    x="256"
+                    y="255"
+                    fontFamily="JetBrains Mono, monospace"
+                    fontSize="5.5"
+                    fill="rgba(0,224,255,0.4)"
+                    letterSpacing="1.8"
+                >
+                    SOURCES
+                </text>
+                <rect
+                    x="256"
+                    y="261"
+                    width="148"
+                    height="18"
+                    rx="5"
+                    fill="rgba(255,255,255,0.02)"
+                    stroke="rgba(255,255,255,0.06)"
+                    strokeWidth="0.6"
+                />
+                <rect
+                    x="263"
+                    y="266"
+                    width="3.5"
+                    height="8"
+                    rx="1.2"
+                    fill="rgba(0,224,255,0.35)"
+                />
+                <rect
+                    x="271"
+                    y="266.5"
+                    width="60"
+                    height="1.8"
+                    rx="0.9"
+                    fill="rgba(255,255,255,0.28)"
+                />
+                <rect
+                    x="271"
+                    y="271"
+                    width="40"
+                    height="1.4"
+                    rx="0.7"
+                    fill="rgba(255,255,255,0.14)"
+                />
+                <text
+                    x="384"
+                    y="272"
+                    fontFamily="JetBrains Mono, monospace"
+                    fontSize="5.5"
+                    fill="rgba(0,224,255,0.35)"
+                    textAnchor="end"
+                >
+                    p.142
+                </text>
 
-                <rect x="256" y="283" width="148" height="18" rx="5" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.05)" strokeWidth="0.6" />
-                <rect x="263" y="288" width="3.5" height="8" rx="1.2" fill="rgba(123,47,255,0.4)" />
-                <rect x="271" y="288.5" width="52" height="1.8" rx="0.9" fill="rgba(255,255,255,0.22)" />
-                <rect x="271" y="293" width="36" height="1.4" rx="0.7" fill="rgba(255,255,255,0.11)" />
-                <text x="384" y="294" fontFamily="JetBrains Mono, monospace" fontSize="5.5" fill="rgba(123,47,255,0.4)" textAnchor="end">p.89</text>
+                <rect
+                    x="256"
+                    y="283"
+                    width="148"
+                    height="18"
+                    rx="5"
+                    fill="rgba(255,255,255,0.02)"
+                    stroke="rgba(255,255,255,0.05)"
+                    strokeWidth="0.6"
+                />
+                <rect
+                    x="263"
+                    y="288"
+                    width="3.5"
+                    height="8"
+                    rx="1.2"
+                    fill="rgba(123,47,255,0.4)"
+                />
+                <rect
+                    x="271"
+                    y="288.5"
+                    width="52"
+                    height="1.8"
+                    rx="0.9"
+                    fill="rgba(255,255,255,0.22)"
+                />
+                <rect
+                    x="271"
+                    y="293"
+                    width="36"
+                    height="1.4"
+                    rx="0.7"
+                    fill="rgba(255,255,255,0.11)"
+                />
+                <text
+                    x="384"
+                    y="294"
+                    fontFamily="JetBrains Mono, monospace"
+                    fontSize="5.5"
+                    fill="rgba(123,47,255,0.4)"
+                    textAnchor="end"
+                >
+                    p.89
+                </text>
 
                 {/* Page number */}
-                <text x="333" y="312" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill="rgba(255,255,255,0.14)" textAnchor="middle">143</text>
+                <text
+                    x="333"
+                    y="312"
+                    fontFamily="JetBrains Mono, monospace"
+                    fontSize="6.5"
+                    fill="rgba(255,255,255,0.14)"
+                    textAnchor="middle"
+                >
+                    143
+                </text>
 
                 {/* Scan line */}
-                <rect x="52" y="24" width="376" height="3" rx="1.5" fill="rgba(0,224,255,0.08)">
-                    <animate attributeName="y" values="24;327;24" dur="5s" repeatCount="indefinite" />
-                    <animate attributeName="opacity" values="0.1;0.03;0.1" dur="5s" repeatCount="indefinite" />
+                <rect
+                    x="52"
+                    y="24"
+                    width="376"
+                    height="3"
+                    rx="1.5"
+                    fill="rgba(0,224,255,0.08)"
+                >
+                    <animate
+                        attributeName="y"
+                        values="24;327;24"
+                        dur="5s"
+                        repeatCount="indefinite"
+                    />
+                    <animate
+                        attributeName="opacity"
+                        values="0.1;0.03;0.1"
+                        dur="5s"
+                        repeatCount="indefinite"
+                    />
                 </rect>
 
                 {/* Floating particles */}
                 <circle cx="36" cy="110" r="1.8" fill="rgba(0,224,255,0.5)">
-                    <animate attributeName="cy" values="110;96;110" dur="4.5s" repeatCount="indefinite" />
-                    <animate attributeName="opacity" values="0.5;0.9;0.5" dur="4.5s" repeatCount="indefinite" />
+                    <animate
+                        attributeName="cy"
+                        values="110;96;110"
+                        dur="4.5s"
+                        repeatCount="indefinite"
+                    />
+                    <animate
+                        attributeName="opacity"
+                        values="0.5;0.9;0.5"
+                        dur="4.5s"
+                        repeatCount="indefinite"
+                    />
                 </circle>
                 <circle cx="448" cy="190" r="1.2" fill="rgba(123,47,255,0.6)">
-                    <animate attributeName="cy" values="190;174;190" dur="5.5s" repeatCount="indefinite" />
+                    <animate
+                        attributeName="cy"
+                        values="190;174;190"
+                        dur="5.5s"
+                        repeatCount="indefinite"
+                    />
                 </circle>
                 <circle cx="28" cy="260" r="1" fill="rgba(0,224,255,0.35)">
-                    <animate attributeName="cy" values="260;246;260" dur="6s" repeatCount="indefinite" />
+                    <animate
+                        attributeName="cy"
+                        values="260;246;260"
+                        dur="6s"
+                        repeatCount="indefinite"
+                    />
                 </circle>
                 <circle cx="456" cy="80" r="0.9" fill="rgba(0,224,255,0.4)">
-                    <animate attributeName="cy" values="80;66;80" dur="3.8s" repeatCount="indefinite" />
+                    <animate
+                        attributeName="cy"
+                        values="80;66;80"
+                        dur="3.8s"
+                        repeatCount="indefinite"
+                    />
                 </circle>
             </svg>
             <div className="holo-reflection" />
@@ -604,19 +1133,19 @@ function HoloBook() {
 
 /* ━━━ TERMINAL DEMO ━━━ */
 const SCRIPT = [
-    { text: '$ kindleai upload "dune.epub"',                color: "cmd"    },
-    { text: "  ✓ Parsed 23 chapters  (412 pages)",          color: "ok"     },
-    { text: "  ✓ Generated 2,847 vector embeddings",        color: "ok"     },
-    { text: "  ✓ Indexed in Qdrant  [ready]",               color: "ok"     },
-    { text: "",                                              color: "blank"  },
-    { text: '$ kindleai ask "What is the Kwisatz Haderach?"', color: "cmd"  },
-    { text: "",                                              color: "blank"  },
-    { text: "  Searching 2,847 vectors...",                  color: "dim"    },
-    { text: "",                                              color: "blank"  },
+    { text: '$ kindleai upload "dune.epub"', color: "cmd" },
+    { text: "  ✓ Parsed 23 chapters  (412 pages)", color: "ok" },
+    { text: "  ✓ Generated 2,847 vector embeddings", color: "ok" },
+    { text: "  ✓ Indexed in Qdrant  [ready]", color: "ok" },
+    { text: "", color: "blank" },
+    { text: '$ kindleai ask "What is the Kwisatz Haderach?"', color: "cmd" },
+    { text: "", color: "blank" },
+    { text: "  Searching 2,847 vectors...", color: "dim" },
+    { text: "", color: "blank" },
     { text: '  "The Kwisatz Haderach was the Bene Gesserit', color: "answer" },
-    { text: '   name for the superbeing they sought to',     color: "answer" },
-    { text: '   create through careful genetic breeding."',  color: "answer" },
-    { text: "",                                              color: "blank"  },
+    { text: "   name for the superbeing they sought to", color: "answer" },
+    { text: '   create through careful genetic breeding."', color: "answer" },
+    { text: "", color: "blank" },
     { text: "  → Source: Chapter 14 · p.189 · match 97.3%", color: "source" },
 ];
 
@@ -632,7 +1161,10 @@ function TerminalDemo() {
         if (!el) return;
 
         // Cancel any previous run (handles Strict Mode double-invoke)
-        if (cancelFn.current) { cancelFn.current(); cancelFn.current = null; }
+        if (cancelFn.current) {
+            cancelFn.current();
+            cancelFn.current = null;
+        }
         setLines([]);
         setDone(false);
 
@@ -648,7 +1180,10 @@ function TerminalDemo() {
 
         return () => {
             observer.disconnect();
-            if (cancelFn.current) { cancelFn.current(); cancelFn.current = null; }
+            if (cancelFn.current) {
+                cancelFn.current();
+                cancelFn.current = null;
+            }
         };
     }, []);
 
@@ -681,13 +1216,18 @@ function startTypewriter(setLines, setDone) {
 
     function tick() {
         if (cancelled) return;
-        if (li >= SCRIPT.length) { setDone(true); return; }
+        if (li >= SCRIPT.length) {
+            setDone(true);
+            return;
+        }
 
         const line = SCRIPT[li];
 
         if (line.color === "blank") {
             setLines((prev) => [...prev, { color: "blank", display: "" }]);
-            li++; ci = 0; lineOpen = false;
+            li++;
+            ci = 0;
+            lineOpen = false;
             setTimeout(tick, 100);
             return;
         }
@@ -707,28 +1247,30 @@ function startTypewriter(setLines, setDone) {
                 return n;
             });
             ci++;
-            const delay = line.color === "cmd" ? 32 : line.color === "ok" ? 9 : 13;
+            const delay =
+                line.color === "cmd" ? 32 : line.color === "ok" ? 9 : 13;
             setTimeout(tick, delay);
         } else {
-            li++; ci = 0; lineOpen = false;
-            const pause = line.color === "cmd" ? 280 : line.color === "ok" ? 50 : 160;
+            li++;
+            ci = 0;
+            lineOpen = false;
+            const pause =
+                line.color === "cmd" ? 280 : line.color === "ok" ? 50 : 160;
             setTimeout(tick, pause);
         }
     }
 
     setTimeout(tick, 600);
-    return () => { cancelled = true; };
+    return () => {
+        cancelled = true;
+    };
 }
 
 /* ━━━ MAIN ━━━ */
 export default function LandingPage() {
     const { user } = useAuth();
     const landingRef = useRef(null);
-    const scrambledTitle = useTextScramble(
-        "KindleAI",
-        true,
-        25,
-    );
+    const scrambledTitle = useTextScramble("KindleAI", true, 25);
 
     useEffect(() => {
         const ctx = gsap.context(() => {
@@ -856,27 +1398,52 @@ export default function LandingPage() {
                     <span className="logo-ai">AI</span>
                 </Link>
                 <div className="lp-nav-center">
-                    <a href="#features" className="nav-anchor">Features</a>
-                    <a href="#how-it-works" className="nav-anchor">How it Works</a>
-                    <a href="#in-action" className="nav-anchor">In Action</a>
+                    <a href="#features" className="nav-anchor">
+                        Features
+                    </a>
+                    <a href="#how-it-works" className="nav-anchor">
+                        How it Works
+                    </a>
+                    <a href="#in-action" className="nav-anchor">
+                        In Action
+                    </a>
                 </div>
                 <div className="lp-nav-links">
                     {user ? (
-                        <Button
-                            component={Link}
-                            to="/home"
-                            className="nav-btn-ghost"
-                        >
-                            Library
-                        </Button>
+                        <>
+                            <Button
+                                component={Link}
+                                to="/home"
+                                className="nav-btn-ghost"
+                            >
+                                Library
+                            </Button>
+                            <Button
+                                onClick={async () => {
+                                    await auth.signOut();
+                                }}
+                                className="nav-btn-primary"
+                            >
+                                Sign Out
+                            </Button>
+                        </>
                     ) : (
-                        <Button
-                            component={Link}
-                            to="/signin"
-                            className="nav-btn-ghost"
-                        >
-                            Sign In
-                        </Button>
+                        <>
+                            <Button
+                                component={Link}
+                                to="/signin"
+                                className="nav-btn-ghost"
+                            >
+                                Sign In
+                            </Button>
+                            <Button
+                                component={Link}
+                                to="/signup"
+                                className="nav-btn-primary"
+                            >
+                                Sign Up
+                            </Button>
+                        </>
                     )}
                 </div>
             </nav>
@@ -1079,8 +1646,8 @@ export default function LandingPage() {
                             </Typography>
                             <p className="terminal-sub">
                                 Upload any EPUB. The pipeline chunks, embeds,
-                                and indexes it in Qdrant. Ask anything —
-                                answers come back with exact page references.
+                                and indexes it in Qdrant. Ask anything — answers
+                                come back with exact page references.
                             </p>
                             <Box mt={4}>
                                 {user ? (
