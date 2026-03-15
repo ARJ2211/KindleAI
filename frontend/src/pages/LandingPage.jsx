@@ -390,7 +390,7 @@ const IconPen = () => (
     </svg>
 );
 
-/* ━━━ HOLO BOOK ━━━ */
+/* ━━━ OPEN BOOK ━━━ */
 function HoloBook() {
     const ref = useRef(null);
     useEffect(() => {
@@ -400,20 +400,10 @@ function HoloBook() {
             const rect = el.getBoundingClientRect();
             const x = (e.clientX - rect.left) / rect.width - 0.5;
             const y = (e.clientY - rect.top) / rect.height - 0.5;
-            gsap.to(el, {
-                rotateY: x * 20,
-                rotateX: -y * 15,
-                duration: 0.6,
-                ease: "power2.out",
-            });
+            gsap.to(el, { rotateY: x * 18, rotateX: -y * 12, duration: 0.6, ease: "power2.out" });
         };
         const leave = () => {
-            gsap.to(el, {
-                rotateY: 0,
-                rotateX: 0,
-                duration: 1.2,
-                ease: "elastic.out(1, 0.5)",
-            });
+            gsap.to(el, { rotateY: 0, rotateX: 0, duration: 1.2, ease: "elastic.out(1, 0.5)" });
         };
         el.addEventListener("mousemove", move);
         el.addEventListener("mouseleave", leave);
@@ -425,231 +415,309 @@ function HoloBook() {
 
     return (
         <div className="holo-book-wrap" ref={ref}>
-            <svg viewBox="0 0 320 420" fill="none" className="holo-book">
+            <svg viewBox="0 0 480 360" fill="none" className="holo-book">
                 <defs>
                     <filter id="glow">
-                        <feGaussianBlur stdDeviation="6" result="b" />
-                        <feMerge>
-                            <feMergeNode in="b" />
-                            <feMergeNode in="SourceGraphic" />
-                        </feMerge>
+                        <feGaussianBlur stdDeviation="4" result="b" />
+                        <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
                     </filter>
-                    <filter id="glowHeavy">
-                        <feGaussianBlur stdDeviation="12" result="b" />
-                        <feMerge>
-                            <feMergeNode in="b" />
-                            <feMergeNode in="SourceGraphic" />
-                        </feMerge>
+                    <filter id="glowMd">
+                        <feGaussianBlur stdDeviation="8" result="b" />
+                        <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
                     </filter>
-                    <linearGradient id="bookGrad" x1="0" y1="0" x2="1" y2="1">
-                        <stop
-                            offset="0%"
-                            stopColor="#00e0ff"
-                            stopOpacity="0.12"
-                        />
-                        <stop
-                            offset="50%"
-                            stopColor="#7b2fff"
-                            stopOpacity="0.06"
-                        />
-                        <stop
-                            offset="100%"
-                            stopColor="#00e0ff"
-                            stopOpacity="0.08"
-                        />
+                    <linearGradient id="pageL" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="#07101f" />
+                        <stop offset="100%" stopColor="#0c1a2e" />
                     </linearGradient>
-                    <linearGradient id="edgeGrad" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id="pageR" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="#0c1a2e" />
+                        <stop offset="100%" stopColor="#07101f" />
+                    </linearGradient>
+                    <linearGradient id="spineG" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#00e0ff" />
                         <stop offset="50%" stopColor="#7b2fff" />
                         <stop offset="100%" stopColor="#00e0ff" />
                     </linearGradient>
-                    <linearGradient id="shimmer" x1="0" y1="0" x2="1" y2="1">
+                    <linearGradient id="topEdge" x1="0" y1="0" x2="1" y2="0">
                         <stop offset="0%" stopColor="rgba(0,224,255,0)" />
-                        <stop offset="50%" stopColor="rgba(0,224,255,0.12)">
-                            <animate
-                                attributeName="offset"
-                                values="0;1;0"
-                                dur="3s"
-                                repeatCount="indefinite"
-                            />
-                        </stop>
+                        <stop offset="30%" stopColor="rgba(0,224,255,0.5)" />
+                        <stop offset="50%" stopColor="rgba(0,224,255,0.8)" />
+                        <stop offset="70%" stopColor="rgba(0,224,255,0.5)" />
                         <stop offset="100%" stopColor="rgba(0,224,255,0)" />
                     </linearGradient>
+                    <radialGradient id="spineBloom" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stopColor="rgba(0,224,255,0.18)" />
+                        <stop offset="100%" stopColor="rgba(0,224,255,0)" />
+                    </radialGradient>
                 </defs>
-                <rect
-                    x="50"
-                    y="45"
-                    width="200"
-                    height="280"
-                    rx="6"
-                    fill="rgba(0,0,0,0.4)"
-                    filter="url(#glowHeavy)"
-                />
-                <rect
-                    x="42"
-                    y="35"
-                    width="200"
-                    height="280"
-                    rx="5"
-                    fill="url(#bookGrad)"
-                    stroke="url(#edgeGrad)"
-                    strokeWidth="0.6"
-                    opacity="0.6"
-                />
-                <rect
-                    x="48"
-                    y="30"
-                    width="200"
-                    height="280"
-                    rx="5"
-                    fill="rgba(0,224,255,0.02)"
-                    stroke="rgba(0,224,255,0.1)"
-                    strokeWidth="0.4"
-                />
-                <rect
-                    x="58"
-                    y="24"
-                    width="200"
-                    height="280"
-                    rx="5"
-                    fill="url(#bookGrad)"
-                    stroke="url(#edgeGrad)"
-                    strokeWidth="1.2"
-                    filter="url(#glow)"
-                />
-                <rect
-                    x="58"
-                    y="24"
-                    width="200"
-                    height="280"
-                    rx="5"
-                    fill="url(#shimmer)"
-                />
-                <line
-                    x1="90"
-                    y1="75"
-                    x2="226"
-                    y2="75"
-                    stroke="rgba(0,224,255,0.35)"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                />
-                <line
-                    x1="90"
-                    y1="95"
-                    x2="195"
-                    y2="95"
-                    stroke="rgba(0,224,255,0.2)"
-                    strokeWidth="1"
-                />
-                <line
-                    x1="90"
-                    y1="110"
-                    x2="210"
-                    y2="110"
-                    stroke="rgba(0,224,255,0.12)"
-                    strokeWidth="0.8"
-                />
-                <circle
-                    cx="158"
-                    cy="190"
-                    r="40"
-                    stroke="rgba(0,224,255,0.15)"
-                    strokeWidth="0.8"
-                    strokeDasharray="5 4"
-                >
-                    <animateTransform
-                        attributeName="transform"
-                        type="rotate"
-                        values="0 158 190;360 158 190"
-                        dur="25s"
-                        repeatCount="indefinite"
-                    />
+
+                {/* Drop shadow */}
+                <ellipse cx="240" cy="348" rx="170" ry="14" fill="rgba(0,224,255,0.07)" filter="url(#glowMd)" />
+
+                {/* Left page */}
+                <path d="M 52 36 L 232 24 L 232 326 L 52 316 Z" fill="url(#pageL)" stroke="rgba(0,224,255,0.18)" strokeWidth="0.7" />
+                {/* Right page */}
+                <path d="M 248 24 L 428 36 L 428 316 L 248 326 Z" fill="url(#pageR)" stroke="rgba(0,224,255,0.18)" strokeWidth="0.7" />
+
+                {/* Spine bloom */}
+                <rect x="200" y="24" width="80" height="302" fill="url(#spineBloom)" />
+                {/* Spine line */}
+                <line x1="240" y1="23" x2="240" y2="327" stroke="url(#spineG)" strokeWidth="2.5" filter="url(#glow)" />
+                {/* Top edge glow */}
+                <path d="M 52 36 L 232 24 L 248 24 L 428 36" stroke="url(#topEdge)" strokeWidth="1.2" />
+
+                {/* ── LEFT PAGE: Reading content ── */}
+                {/* Chapter label */}
+                <text x="70" y="62" fontFamily="JetBrains Mono, monospace" fontSize="6" fill="rgba(0,224,255,0.45)" letterSpacing="2.5">CHAPTER 12</text>
+                {/* Chapter title */}
+                <rect x="70" y="70" width="140" height="3" rx="1.5" fill="rgba(255,255,255,0.65)" />
+                <rect x="70" y="78" width="95" height="2" rx="1" fill="rgba(255,255,255,0.3)" />
+
+                {/* Body text lines */}
+                {[88,95,102,109,116,123,130].map((y, i) => (
+                    <rect key={i} x="70" y={y} width={[148,136,152,128,144,138,150][i]} height="1.5" rx="0.75" fill={`rgba(255,255,255,${[0.13,0.10,0.13,0.09,0.12,0.10,0.13][i]})`} />
+                ))}
+
+                {/* Highlighted passage */}
+                <rect x="70" y="140" width="148" height="22" rx="3" fill="rgba(0,224,255,0.07)" stroke="rgba(0,224,255,0.15)" strokeWidth="0.6" />
+                <rect x="70" y="143" width="138" height="1.8" rx="0.9" fill="rgba(0,224,255,0.4)" />
+                <rect x="70" y="148" width="144" height="1.8" rx="0.9" fill="rgba(0,224,255,0.3)" />
+                <rect x="70" y="153" width="112" height="1.8" rx="0.9" fill="rgba(0,224,255,0.22)" />
+                {/* Highlight margin mark */}
+                <rect x="64" y="140" width="3" height="22" rx="1.5" fill="rgba(0,224,255,0.6)" filter="url(#glow)" />
+
+                {/* More body text */}
+                {[170,177,184,191,198,205,212,219].map((y, i) => (
+                    <rect key={i} x="70" y={y} width={[142,130,150,118,140,136,148,100][i]} height="1.5" rx="0.75" fill={`rgba(255,255,255,${[0.10,0.08,0.11,0.07,0.10,0.09,0.11,0.06][i]})`} />
+                ))}
+
+                {/* Paragraph gap + more lines */}
+                {[232,239,246,253,260,267].map((y, i) => (
+                    <rect key={i} x="70" y={y} width={[144,132,150,126,142,88][i]} height="1.5" rx="0.75" fill={`rgba(255,255,255,${[0.09,0.07,0.10,0.06,0.08,0.05][i]})`} />
+                ))}
+
+                {/* Page number */}
+                <text x="152" y="312" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill="rgba(255,255,255,0.14)" textAnchor="middle">142</text>
+
+                {/* ── RIGHT PAGE: AI Chat ── */}
+                {/* Header bar */}
+                <rect x="256" y="32" width="156" height="18" rx="4" fill="rgba(0,224,255,0.05)" stroke="rgba(0,224,255,0.1)" strokeWidth="0.6" />
+                <circle cx="266" cy="41" r="3.5" fill="rgba(0,224,255,0.15)" stroke="rgba(0,224,255,0.4)" strokeWidth="0.8">
+                    <animate attributeName="r" values="3.5;4.2;3.5" dur="3s" repeatCount="indefinite" />
                 </circle>
-                <circle
-                    cx="158"
-                    cy="190"
-                    r="28"
-                    stroke="rgba(123,47,255,0.25)"
-                    strokeWidth="0.8"
-                    strokeDasharray="3 4"
-                >
-                    <animateTransform
-                        attributeName="transform"
-                        type="rotate"
-                        values="360 158 190;0 158 190"
-                        dur="18s"
-                        repeatCount="indefinite"
-                    />
+                <rect x="274" y="38.5" width="42" height="2" rx="1" fill="rgba(0,224,255,0.5)" />
+                <rect x="274" y="43" width="28" height="1.5" rx="0.75" fill="rgba(0,224,255,0.25)" />
+                <rect x="392" y="37" width="12" height="1.5" rx="0.75" fill="rgba(255,255,255,0.1)" />
+                <rect x="392" y="41" width="12" height="1.5" rx="0.75" fill="rgba(255,255,255,0.1)" />
+                <rect x="392" y="45" width="12" height="1.5" rx="0.75" fill="rgba(255,255,255,0.1)" />
+
+                {/* Divider */}
+                <line x1="256" y1="58" x2="412" y2="58" stroke="rgba(0,224,255,0.08)" strokeWidth="0.8" />
+
+                {/* User message bubble */}
+                <rect x="316" y="68" width="90" height="26" rx="9" fill="rgba(123,47,255,0.18)" stroke="rgba(123,47,255,0.3)" strokeWidth="0.7" />
+                <rect x="325" y="74" width="72" height="1.8" rx="0.9" fill="rgba(255,255,255,0.5)" />
+                <rect x="325" y="79" width="60" height="1.8" rx="0.9" fill="rgba(255,255,255,0.3)" />
+                <rect x="325" y="84" width="44" height="1.8" rx="0.9" fill="rgba(255,255,255,0.2)" />
+
+                {/* AI response bubble */}
+                <rect x="256" y="106" width="112" height="46" rx="9" fill="rgba(0,224,255,0.06)" stroke="rgba(0,224,255,0.18)" strokeWidth="0.7" />
+                <circle cx="265" cy="114" r="2.5" fill="rgba(0,224,255,0.7)">
+                    <animate attributeName="opacity" values="0.7;1;0.7" dur="2s" repeatCount="indefinite" />
                 </circle>
-                <circle
-                    cx="158"
-                    cy="190"
-                    r="16"
-                    stroke="rgba(0,224,255,0.2)"
-                    strokeWidth="1"
-                >
-                    <animateTransform
-                        attributeName="transform"
-                        type="rotate"
-                        values="0 158 190;-360 158 190"
-                        dur="12s"
-                        repeatCount="indefinite"
-                    />
+                <rect x="272" y="112.5" width="28" height="1.8" rx="0.9" fill="rgba(0,224,255,0.55)" />
+                <rect x="264" y="120" width="96" height="1.8" rx="0.9" fill="rgba(255,255,255,0.38)" />
+                <rect x="264" y="125.5" width="100" height="1.8" rx="0.9" fill="rgba(255,255,255,0.28)" />
+                <rect x="264" y="131" width="88" height="1.8" rx="0.9" fill="rgba(255,255,255,0.22)" />
+                <rect x="264" y="136.5" width="68" height="1.8" rx="0.9" fill="rgba(255,255,255,0.15)" />
+                <rect x="264" y="142" width="48" height="1.8" rx="0.9" fill="rgba(255,255,255,0.1)" />
+
+                {/* Source citation chip */}
+                <rect x="264" y="158" width="72" height="13" rx="6" fill="rgba(0,224,255,0.06)" stroke="rgba(0,224,255,0.22)" strokeWidth="0.7" />
+                <rect x="271" y="162" width="4" height="5" rx="1" fill="rgba(0,224,255,0.35)" />
+                <rect x="279" y="162.5" width="36" height="1.5" rx="0.75" fill="rgba(0,224,255,0.35)" />
+                <rect x="279" y="166" width="24" height="1.2" rx="0.6" fill="rgba(0,224,255,0.2)" />
+                <text x="326" y="167" fontFamily="JetBrains Mono, monospace" fontSize="5" fill="rgba(0,224,255,0.4)">p.142</text>
+
+                {/* Second user bubble */}
+                <rect x="322" y="182" width="84" height="22" rx="8" fill="rgba(123,47,255,0.18)" stroke="rgba(123,47,255,0.3)" strokeWidth="0.7" />
+                <rect x="330" y="188" width="66" height="1.8" rx="0.9" fill="rgba(255,255,255,0.45)" />
+                <rect x="330" y="193.5" width="48" height="1.8" rx="0.9" fill="rgba(255,255,255,0.25)" />
+
+                {/* Typing indicator */}
+                <rect x="256" y="214" width="52" height="18" rx="9" fill="rgba(0,224,255,0.06)" stroke="rgba(0,224,255,0.15)" strokeWidth="0.7" />
+                <circle cx="268" cy="223" r="2.8" fill="rgba(0,224,255,0.45)">
+                    <animate attributeName="opacity" values="0.45;1;0.45" dur="1.1s" begin="0s" repeatCount="indefinite" />
                 </circle>
-                <circle
-                    cx="158"
-                    cy="190"
-                    r="5"
-                    fill="rgba(0,224,255,0.7)"
-                    filter="url(#glow)"
-                >
-                    <animate
-                        attributeName="r"
-                        values="4;7;4"
-                        dur="2s"
-                        repeatCount="indefinite"
-                    />
+                <circle cx="279" cy="223" r="2.8" fill="rgba(0,224,255,0.45)">
+                    <animate attributeName="opacity" values="0.45;1;0.45" dur="1.1s" begin="0.35s" repeatCount="indefinite" />
                 </circle>
-                <circle r="2" fill="rgba(0,224,255,0.6)">
-                    <animateMotion
-                        dur="8s"
-                        repeatCount="indefinite"
-                        path="M158,190 m-28,0 a28,28 0 1,1 56,0 a28,28 0 1,1 -56,0"
-                    />
+                <circle cx="290" cy="223" r="2.8" fill="rgba(0,224,255,0.45)">
+                    <animate attributeName="opacity" values="0.45;1;0.45" dur="1.1s" begin="0.7s" repeatCount="indefinite" />
                 </circle>
-                <circle r="1.5" fill="rgba(123,47,255,0.8)">
-                    <animateMotion
-                        dur="12s"
-                        repeatCount="indefinite"
-                        path="M158,190 m-40,0 a40,40 0 1,0 80,0 a40,40 0 1,0 -80,0"
-                    />
-                </circle>
-                <rect
-                    x="58"
-                    y="24"
-                    width="200"
-                    height="4"
-                    fill="rgba(0,224,255,0.12)"
-                    rx="2"
-                >
-                    <animate
-                        attributeName="y"
-                        values="24;300;24"
-                        dur="4s"
-                        repeatCount="indefinite"
-                    />
-                    <animate
-                        attributeName="opacity"
-                        values="0.15;0.05;0.15"
-                        dur="4s"
-                        repeatCount="indefinite"
-                    />
+
+                {/* Divider */}
+                <line x1="256" y1="242" x2="412" y2="242" stroke="rgba(0,224,255,0.07)" strokeWidth="0.8" />
+
+                {/* Sources section */}
+                <text x="256" y="255" fontFamily="JetBrains Mono, monospace" fontSize="5.5" fill="rgba(0,224,255,0.4)" letterSpacing="1.8">SOURCES</text>
+                <rect x="256" y="261" width="148" height="18" rx="5" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.06)" strokeWidth="0.6" />
+                <rect x="263" y="266" width="3.5" height="8" rx="1.2" fill="rgba(0,224,255,0.35)" />
+                <rect x="271" y="266.5" width="60" height="1.8" rx="0.9" fill="rgba(255,255,255,0.28)" />
+                <rect x="271" y="271" width="40" height="1.4" rx="0.7" fill="rgba(255,255,255,0.14)" />
+                <text x="384" y="272" fontFamily="JetBrains Mono, monospace" fontSize="5.5" fill="rgba(0,224,255,0.35)" textAnchor="end">p.142</text>
+
+                <rect x="256" y="283" width="148" height="18" rx="5" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.05)" strokeWidth="0.6" />
+                <rect x="263" y="288" width="3.5" height="8" rx="1.2" fill="rgba(123,47,255,0.4)" />
+                <rect x="271" y="288.5" width="52" height="1.8" rx="0.9" fill="rgba(255,255,255,0.22)" />
+                <rect x="271" y="293" width="36" height="1.4" rx="0.7" fill="rgba(255,255,255,0.11)" />
+                <text x="384" y="294" fontFamily="JetBrains Mono, monospace" fontSize="5.5" fill="rgba(123,47,255,0.4)" textAnchor="end">p.89</text>
+
+                {/* Page number */}
+                <text x="333" y="312" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill="rgba(255,255,255,0.14)" textAnchor="middle">143</text>
+
+                {/* Scan line */}
+                <rect x="52" y="24" width="376" height="3" rx="1.5" fill="rgba(0,224,255,0.08)">
+                    <animate attributeName="y" values="24;327;24" dur="5s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.1;0.03;0.1" dur="5s" repeatCount="indefinite" />
                 </rect>
+
+                {/* Floating particles */}
+                <circle cx="36" cy="110" r="1.8" fill="rgba(0,224,255,0.5)">
+                    <animate attributeName="cy" values="110;96;110" dur="4.5s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.5;0.9;0.5" dur="4.5s" repeatCount="indefinite" />
+                </circle>
+                <circle cx="448" cy="190" r="1.2" fill="rgba(123,47,255,0.6)">
+                    <animate attributeName="cy" values="190;174;190" dur="5.5s" repeatCount="indefinite" />
+                </circle>
+                <circle cx="28" cy="260" r="1" fill="rgba(0,224,255,0.35)">
+                    <animate attributeName="cy" values="260;246;260" dur="6s" repeatCount="indefinite" />
+                </circle>
+                <circle cx="456" cy="80" r="0.9" fill="rgba(0,224,255,0.4)">
+                    <animate attributeName="cy" values="80;66;80" dur="3.8s" repeatCount="indefinite" />
+                </circle>
             </svg>
             <div className="holo-reflection" />
         </div>
     );
+}
+
+/* ━━━ TERMINAL DEMO ━━━ */
+const SCRIPT = [
+    { text: '$ kindleai upload "dune.epub"',                color: "cmd"    },
+    { text: "  ✓ Parsed 23 chapters  (412 pages)",          color: "ok"     },
+    { text: "  ✓ Generated 2,847 vector embeddings",        color: "ok"     },
+    { text: "  ✓ Indexed in Qdrant  [ready]",               color: "ok"     },
+    { text: "",                                              color: "blank"  },
+    { text: '$ kindleai ask "What is the Kwisatz Haderach?"', color: "cmd"  },
+    { text: "",                                              color: "blank"  },
+    { text: "  Searching 2,847 vectors...",                  color: "dim"    },
+    { text: "",                                              color: "blank"  },
+    { text: '  "The Kwisatz Haderach was the Bene Gesserit', color: "answer" },
+    { text: '   name for the superbeing they sought to',     color: "answer" },
+    { text: '   create through careful genetic breeding."',  color: "answer" },
+    { text: "",                                              color: "blank"  },
+    { text: "  → Source: Chapter 14 · p.189 · match 97.3%", color: "source" },
+];
+
+function TerminalDemo() {
+    const [lines, setLines] = useState([]);
+    const [done, setDone] = useState(false);
+    const ref = useRef(null);
+    // cancelFn holds the cancel callback of the currently running typewriter
+    const cancelFn = useRef(null);
+
+    useEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+
+        // Cancel any previous run (handles Strict Mode double-invoke)
+        if (cancelFn.current) { cancelFn.current(); cancelFn.current = null; }
+        setLines([]);
+        setDone(false);
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting && !cancelFn.current) {
+                    cancelFn.current = startTypewriter(setLines, setDone);
+                }
+            },
+            { threshold: 0.25 },
+        );
+        observer.observe(el);
+
+        return () => {
+            observer.disconnect();
+            if (cancelFn.current) { cancelFn.current(); cancelFn.current = null; }
+        };
+    }, []);
+
+    return (
+        <div className="terminal-wrap" ref={ref}>
+            <div className="terminal-header">
+                <span className="t-dot t-red" />
+                <span className="t-dot t-yellow" />
+                <span className="t-dot t-green" />
+                <span className="t-title">kindleai — zsh</span>
+            </div>
+            <div className="terminal-body">
+                {lines.map((line, i) => (
+                    <div key={i} className={`t-line t-${line.color}`}>
+                        {line.display || "\u00A0"}
+                    </div>
+                ))}
+                {!done && <span className="t-cursor">█</span>}
+            </div>
+        </div>
+    );
+}
+
+// Pure function — no component scope, returns a cancel callback
+function startTypewriter(setLines, setDone) {
+    let cancelled = false;
+    let li = 0;
+    let ci = 0;
+    let lineOpen = false;
+
+    function tick() {
+        if (cancelled) return;
+        if (li >= SCRIPT.length) { setDone(true); return; }
+
+        const line = SCRIPT[li];
+
+        if (line.color === "blank") {
+            setLines((prev) => [...prev, { color: "blank", display: "" }]);
+            li++; ci = 0; lineOpen = false;
+            setTimeout(tick, 100);
+            return;
+        }
+
+        const full = line.text;
+
+        if (!lineOpen) {
+            setLines((prev) => [...prev, { color: line.color, display: "" }]);
+            lineOpen = true;
+        }
+
+        if (ci < full.length) {
+            const current = full.slice(0, ci + 1);
+            setLines((prev) => {
+                const n = [...prev];
+                n[n.length - 1] = { color: line.color, display: current };
+                return n;
+            });
+            ci++;
+            const delay = line.color === "cmd" ? 32 : line.color === "ok" ? 9 : 13;
+            setTimeout(tick, delay);
+        } else {
+            li++; ci = 0; lineOpen = false;
+            const pause = line.color === "cmd" ? 280 : line.color === "ok" ? 50 : 160;
+            setTimeout(tick, pause);
+        }
+    }
+
+    setTimeout(tick, 600);
+    return () => { cancelled = true; };
 }
 
 /* ━━━ MAIN ━━━ */
@@ -657,7 +725,7 @@ export default function LandingPage() {
     const { user } = useAuth();
     const landingRef = useRef(null);
     const scrambledTitle = useTextScramble(
-        "KindleAI - THIS IS JUST A TEMPLATE",
+        "KindleAI",
         true,
         25,
     );
@@ -782,39 +850,33 @@ export default function LandingPage() {
 
             {/* NAV */}
             <nav className="lp-nav">
-                <div className="lp-nav-logo">
+                <Link to="/" className="lp-nav-logo">
                     <span className="logo-k">K</span>
                     <span className="logo-dot">.</span>
                     <span className="logo-ai">AI</span>
+                </Link>
+                <div className="lp-nav-center">
+                    <a href="#features" className="nav-anchor">Features</a>
+                    <a href="#how-it-works" className="nav-anchor">How it Works</a>
+                    <a href="#in-action" className="nav-anchor">In Action</a>
                 </div>
                 <div className="lp-nav-links">
                     {user ? (
-                        <MagneticButton
+                        <Button
                             component={Link}
                             to="/home"
-                            variant="contained"
-                            className="nav-btn-primary"
+                            className="nav-btn-ghost"
                         >
                             Library
-                        </MagneticButton>
+                        </Button>
                     ) : (
-                        <>
-                            <Button
-                                component={Link}
-                                to="/signin"
-                                className="nav-btn-ghost"
-                            >
-                                Sign In
-                            </Button>
-                            <MagneticButton
-                                component={Link}
-                                to="/signup"
-                                variant="contained"
-                                className="nav-btn-primary"
-                            >
-                                Get Started
-                            </MagneticButton>
-                        </>
+                        <Button
+                            component={Link}
+                            to="/signin"
+                            className="nav-btn-ghost"
+                        >
+                            Sign In
+                        </Button>
                     )}
                 </div>
             </nav>
@@ -909,7 +971,7 @@ export default function LandingPage() {
             </section>
 
             {/* FEATURES */}
-            <section className="lp-features">
+            <section id="features" className="lp-features">
                 <Container maxWidth="lg">
                     <div className="section-label">
                         <span className="label-index">01</span>
@@ -950,7 +1012,7 @@ export default function LandingPage() {
             </section>
 
             {/* HOW IT WORKS */}
-            <section className="lp-how">
+            <section id="how-it-works" className="lp-how">
                 <Container maxWidth="md">
                     <div className="section-label">
                         <span className="label-index">02</span>
@@ -1000,37 +1062,52 @@ export default function LandingPage() {
                 </Container>
             </section>
 
-            {/* FINAL CTA */}
-            <section className="lp-final-cta">
-                <Container maxWidth="sm" sx={{ textAlign: "center" }}>
-                    <Typography className="final-heading">
-                        Ready to read
-                        <br />
-                        <span className="final-accent">smarter</span>?
-                    </Typography>
-                    <Box mt={4} display="flex" gap={2} justifyContent="center">
-                        {user ? (
-                            <MagneticButton
-                                component={Link}
-                                to="/home"
-                                variant="contained"
-                                className="hero-cta cta-primary"
-                                size="large"
-                            >
-                                Go to Library
-                            </MagneticButton>
-                        ) : (
-                            <MagneticButton
-                                component={Link}
-                                to="/signup"
-                                variant="contained"
-                                className="hero-cta cta-primary"
-                                size="large"
-                            >
-                                Create Free Account
-                            </MagneticButton>
-                        )}
-                    </Box>
+            {/* TERMINAL DEMO / FINAL */}
+            <section id="in-action" className="lp-final-cta">
+                <Container maxWidth="lg">
+                    <div className="section-label">
+                        <span className="label-index">03</span>
+                        <span className="label-text">In Action</span>
+                        <span className="label-line" />
+                    </div>
+                    <div className="terminal-section">
+                        <div className="terminal-left">
+                            <Typography className="final-heading">
+                                See it
+                                <br />
+                                <span className="final-accent">working.</span>
+                            </Typography>
+                            <p className="terminal-sub">
+                                Upload any EPUB. The pipeline chunks, embeds,
+                                and indexes it in Qdrant. Ask anything —
+                                answers come back with exact page references.
+                            </p>
+                            <Box mt={4}>
+                                {user ? (
+                                    <MagneticButton
+                                        component={Link}
+                                        to="/home"
+                                        variant="contained"
+                                        className="hero-cta cta-primary"
+                                        size="large"
+                                    >
+                                        Open Library
+                                    </MagneticButton>
+                                ) : (
+                                    <MagneticButton
+                                        component={Link}
+                                        to="/signup"
+                                        variant="contained"
+                                        className="hero-cta cta-primary"
+                                        size="large"
+                                    >
+                                        Try it yourself
+                                    </MagneticButton>
+                                )}
+                            </Box>
+                        </div>
+                        <TerminalDemo />
+                    </div>
                 </Container>
             </section>
 
