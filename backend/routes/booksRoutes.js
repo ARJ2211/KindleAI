@@ -2,13 +2,14 @@ import { unlink } from "fs/promises";
 import { Router } from "express";
 
 import { finalizeUpload, getUpload } from "../utils/diskStorage.js";
+import { deleteBookVectors } from "../embedder/qdrantClient.js";
+import { lookupBook } from "../utils/googleBooks.js";
+import { ingestWorker } from "../workers/worker.js";
 import { verifyToken } from "../middleware/auth.js";
 import { parseEpub } from "../utils/epubParser.js";
-import { lookupBook } from "../utils/googleBooks.js";
-import { ingestBook } from "../embedder/injest.js";
 
+import * as helper from "../helper.js";
 import * as bookData from "../data/bookData.js";
-import * as redis from "../config/redisClient.js";
 
 const upload = await getUpload();
 const router = Router();
@@ -16,6 +17,55 @@ const router = Router();
 /** ===============================
  * PRIVATE: firebase token needed
  * ============================== */
+
+// Get API for getting the book by ID
+router
+    .get("/:id", async (req, res) => {
+        try {
+            const id = helper.isValidString(req.params.id);
+            const book = await bookData.getBookById(id);
+            return res.status(200).json(book);
+        } catch (e) {
+            return res.status(e.status || 500).json({
+                msg: e.msg || e.message || "Failed to fetch book",
+            });
+        }
+    })
+    .delete("/:id", async (req, res) => {
+        try {
+            const id = helper.isValidString(req.params.id);
+
+            // TODO: Remove the hardcoded value later
+            const user = { uid: "ZBkHEebb5sQ3hMY8zeQgkN2aoom2" };
+            // const user = req.user?.uid
+
+            const book = await bookData.getBookById(id);
+
+            if (book.first_uploaded_by === user.uid) {
+                const del = await bookData.deleteBookById(id);
+                if (!del) {
+                    return res
+                        .status(500)
+                        .json({ msg: "Internal Server Error" });
+                }
+
+                const delQdrant = await deleteBookVectors(id);
+                if (!delQdrant) {
+                    return res
+                        .status(500)
+                        .json({ msg: "Internal Server Error" });
+                }
+
+                return res
+                    .status(200)
+                    .json({ msg: `${book.title} deleted successfully` });
+            }
+        } catch (e) {
+            return res.status(e.status || 500).json({
+                msg: e.msg || e.message || "Failed to fetch book",
+            });
+        }
+    });
 
 // API call for uploading books to persistent file storage
 // TODO: Need to use the verify token here. Currently hardcoded
@@ -36,7 +86,7 @@ router.post(
             finalPath = result.finalPath;
             const hash = result.hash;
 
-            // 2. Dedup check — if this hash exists, just return the existing book
+            // 2. Dedup check if hash exists, just return the existing book
             const existing = await bookData.getBookByHash(hash);
             if (existing) {
                 return res.status(200).json({
@@ -75,20 +125,28 @@ router.post(
             const bookId = book._id.toString();
 
             // BACKGROUND INGESTION. DO NOT AWAIT HERE!
-            ingestBook(finalPath, bookId)
-                .then(async () => {
+            // THIS IS A WORKER THAT WILL SPAWN A NEW THREAD
+            // AND RUN IN THE BACKGROUND
+            ingestWorker(finalPath, bookId, async (err) => {
+                try {
+                    if (err) {
+                        console.error(
+                            `[upload] Ingestion failed for "${finalTitle}" (${bookId}):`,
+                            err.message,
+                        );
+                        return;
+                    }
                     await bookData.markEmbeddingReady(bookId);
-                    await redis.delCache(`book:${bookId}`).catch(() => {});
                     console.log(
                         `[upload] Ingestion complete for "${finalTitle}" (${bookId})`,
                     );
-                })
-                .catch((err) => {
+                } catch (e) {
                     console.error(
-                        `[upload] Ingestion failed for "${finalTitle}" (${bookId}):`,
-                        err.message,
+                        `[upload] Post-ingestion error for "${finalTitle}" (${bookId}):`,
+                        e.message,
                     );
-                });
+                }
+            });
 
             return res.status(201).json({
                 msg: "Book uploaded successfully",

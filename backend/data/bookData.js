@@ -210,6 +210,29 @@ export const searchBooks = async (query, limit = 20) => {
 };
 
 /**
+ * Delete a book by its MongoDB ObjectId.
+ *
+ * @param {string} bookId
+ * @returns {boolean} true if deleted
+ */
+export const deleteBookById = async (bookId) => {
+    bookId = helper.isValidString(bookId);
+
+    if (!ObjectId.isValid(bookId)) {
+        helper.throwError(400, `Invalid book ID: ${bookId}`);
+    }
+
+    const col = await books();
+    const result = await col.deleteOne({ _id: new ObjectId(bookId) });
+
+    if (result.deletedCount === 0) {
+        helper.throwError(404, `Book ${bookId} not found`);
+    }
+
+    return true;
+};
+
+/**
  * Get total count of books in the shared library.
  *
  * @returns {number}

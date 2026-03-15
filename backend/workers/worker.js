@@ -45,3 +45,15 @@ export const testWorker = (onComplete) => {
         onComplete,
     );
 };
+
+/**
+ * This is the ingest worker that will be used to
+ * ingest books and then dump into Qdrant
+ *
+ * @param {string} epubPath Path of the epub file on disk
+ * @param {bookId} bookId MongoDB book ID
+ * @param {function} onComplete Callback function
+ */
+export const ingestWorker = (epubPath, bookId, onComplete) => {
+    spawnWorker("ingest.worker.js", { epubPath, bookId }, onComplete);
+};
