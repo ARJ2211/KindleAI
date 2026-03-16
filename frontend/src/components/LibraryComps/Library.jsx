@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Box, Typography, CircularProgress } from "@mui/material";
 import AutoStoriesIcon from "@mui/icons-material/AutoStories";
-import api from "../api/axios.js";
+import api from "../../api/axios.js";
 
 /**
  * Thisis a default cover photo when there is

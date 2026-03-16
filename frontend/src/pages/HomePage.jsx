@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Box, Button, CircularProgress, Typography } from "@mui/material";
 
 import AlertPopup from "../components/AlertPopup.jsx";
-import Library from "../components/Library.jsx";
+import Library from "../components/LibraryComps/Library.jsx";
 import Navbar from "../components/NavBar.jsx";
 
 import api from "../api/axios.js";
