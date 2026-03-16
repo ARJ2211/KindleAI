@@ -26,7 +26,7 @@ export default function HomePage() {
             setAlert({
                 message: res.data.deduplicated
                     ? `"${res.data.book.title}" already in library`
-                    : `"${res.data.book.title}" uploaded — indexing in background`,
+                    : `"${res.data.book.title}" uploaded successfully`,
                 severity: res.data.deduplicated ? "warning" : "success",
             });
         } catch (err) {
