@@ -1,14 +1,18 @@
 import { useState } from "react";
-import { Box, Button, CircularProgress } from "@mui/material";
-import Navbar from "../components/Navbar.jsx";
-import AlertPopup from "../components/AlertPopup.jsx";
-import api from "../api/axios.js";
+import { Box, Button, CircularProgress, Typography } from "@mui/material";
 
+import AlertPopup from "../components/AlertPopup.jsx";
+import Library from "../components/Library.jsx";
+import Navbar from "../components/NavBar.jsx";
+
+import api from "../api/axios.js";
 import "../css/LandingPage.css";
 
 export default function HomePage() {
+    const [activeTab, setActiveTab] = useState("Global Library");
     const [uploading, setUploading] = useState(false);
     const [alert, setAlert] = useState(null);
+    const [refreshKey, setRefreshKey] = useState(0);
 
     const handleUpload = async (e) => {
         const file = e.target.files[0];
@@ -29,6 +33,11 @@ export default function HomePage() {
                     : `"${res.data.book.title}" uploaded successfully`,
                 severity: res.data.deduplicated ? "warning" : "success",
             });
+
+            // Refresh library after successful upload
+            if (!res.data.deduplicated) {
+                setRefreshKey((prev) => prev + 1);
+            }
         } catch (err) {
             setAlert({
                 message: err.response?.data?.msg || err.message,
@@ -40,28 +49,53 @@ export default function HomePage() {
         }
     };
 
+    const renderTabContent = () => {
+        switch (activeTab) {
+            case "Global Library":
+                return (
+                    <>
+                        <Button
+                            variant="contained"
+                            component="label"
+                            disabled={uploading}
+                            sx={{ mb: 4 }}
+                        >
+                            {uploading ? (
+                                <CircularProgress size={18} sx={{ mr: 1 }} />
+                            ) : null}
+                            {uploading ? "Uploading..." : "Upload EPUB"}
+                            <input
+                                type="file"
+                                accept=".epub"
+                                hidden
+                                onChange={handleUpload}
+                            />
+                        </Button>
+                        <Library key={refreshKey} />
+                    </>
+                );
+            case "My Books":
+                return (
+                    <Typography sx={{ color: "#52525b" }}>
+                        My Books — coming soon
+                    </Typography>
+                );
+            case "Bookmarks":
+                return (
+                    <Typography sx={{ color: "#52525b" }}>
+                        Bookmarks — coming soon
+                    </Typography>
+                );
+            default:
+                return null;
+        }
+    };
+
     return (
         <Box sx={{ minHeight: "100vh", background: "#050508", pt: "80px" }}>
-            <Navbar />
+            <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
 
-            <Box p={4}>
-                <Button
-                    variant="contained"
-                    component="label"
-                    disabled={uploading}
-                >
-                    {uploading ? (
-                        <CircularProgress size={18} sx={{ mr: 1 }} />
-                    ) : null}
-                    {uploading ? "Uploading..." : "Upload EPUB"}
-                    <input
-                        type="file"
-                        accept=".epub"
-                        hidden
-                        onChange={handleUpload}
-                    />
-                </Button>
-            </Box>
+            <Box p={4}>{renderTabContent()}</Box>
 
             <AlertPopup
                 message={alert?.message}

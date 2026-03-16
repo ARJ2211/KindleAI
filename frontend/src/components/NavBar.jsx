@@ -2,11 +2,14 @@ import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { auth } from "../firebase/config.js";
 import Button from "@mui/material/Button";
+import Typography from "@mui/material/Typography";
 
-export default function Navbar() {
+export default function Navbar({ activeTab, onTabChange }) {
     const { user } = useAuth();
     const location = useLocation();
     const isLanding = location.pathname === "/";
+
+    const APP_TABS = ["Global Library", "My Books", "Bookmarks"];
 
     return (
         <nav className="lp-nav">
@@ -30,21 +33,39 @@ export default function Navbar() {
                         </a>
                     </>
                 ) : (
-                    <>
+                    APP_TABS.map((tab) => (
                         <Button
-                            component={Link}
-                            to="/home"
-                            className="nav-anchor"
+                            key={tab}
+                            className="nav-btn-ghost"
+                            onClick={() => onTabChange(tab)}
+                            sx={{
+                                color:
+                                    activeTab === tab
+                                        ? "#00e0ff !important"
+                                        : undefined,
+                            }}
                         >
-                            Library
+                            {tab}
                         </Button>
-                    </>
+                    ))
                 )}
             </div>
 
             <div className="lp-nav-links">
                 {user ? (
                     <>
+                        {!isLanding && (
+                            <Typography
+                                sx={{
+                                    fontFamily: "'JetBrains Mono', monospace",
+                                    fontSize: "0.7rem",
+                                    color: "#52525b",
+                                    letterSpacing: "0.02em",
+                                }}
+                            >
+                                {user.email}
+                            </Typography>
+                        )}
                         {isLanding && (
                             <Button
                                 component={Link}

@@ -28,7 +28,7 @@ export default function SignInPage() {
             const idToken = await cred.user.getIdToken();
             console.log("[auth] Bearer token:", idToken);
 
-            navigate("/home");
+            navigate("/library");
         } catch (err) {
             setError(err.message);
         } finally {

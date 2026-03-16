@@ -1600,7 +1600,7 @@ export default function LandingPage() {
                                 {user ? (
                                     <MagneticButton
                                         component={Link}
-                                        to="/home"
+                                        to="/library"
                                         variant="contained"
                                         className="hero-cta cta-primary"
                                         size="large"
