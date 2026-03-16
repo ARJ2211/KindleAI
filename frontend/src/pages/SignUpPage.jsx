@@ -74,6 +74,7 @@ export default function SignUpPage() {
                         required
                         variant="outlined"
                         sx={styles.input}
+                        autoComplete="off"
                     />
 
                     <TextField
@@ -85,6 +86,7 @@ export default function SignUpPage() {
                         required
                         variant="outlined"
                         sx={styles.input}
+                        autoComplete="off"
                     />
 
                     <TextField
@@ -96,6 +98,7 @@ export default function SignUpPage() {
                         required
                         variant="outlined"
                         sx={styles.input}
+                        autoComplete="off"
                     />
 
                     <TextField
@@ -107,6 +110,7 @@ export default function SignUpPage() {
                         required
                         variant="outlined"
                         sx={styles.input}
+                        autoComplete="off"
                     />
 
                     {error && (

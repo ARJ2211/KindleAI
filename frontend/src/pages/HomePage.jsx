@@ -53,26 +53,11 @@ export default function HomePage() {
         switch (activeTab) {
             case "Global Library":
                 return (
-                    <>
-                        <Button
-                            variant="contained"
-                            component="label"
-                            disabled={uploading}
-                            sx={{ mb: 4 }}
-                        >
-                            {uploading ? (
-                                <CircularProgress size={18} sx={{ mr: 1 }} />
-                            ) : null}
-                            {uploading ? "Uploading..." : "Upload EPUB"}
-                            <input
-                                type="file"
-                                accept=".epub"
-                                hidden
-                                onChange={handleUpload}
-                            />
-                        </Button>
-                        <Library key={refreshKey} />
-                    </>
+                    <Library
+                        key={refreshKey}
+                        onUpload={handleUpload}
+                        uploading={uploading}
+                    />
                 );
             case "My Books":
                 return (

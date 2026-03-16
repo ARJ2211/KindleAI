@@ -18,16 +18,7 @@ export default function SignInPage() {
         setSubmitting(true);
 
         try {
-            const cred = await signInWithEmailAndPassword(
-                auth,
-                email,
-                password,
-            );
-
-            // TODO: Remove this (just for Postman testing)
-            const idToken = await cred.user.getIdToken();
-            console.log("[auth] Bearer token:", idToken);
-
+            await signInWithEmailAndPassword(auth, email, password);
             navigate("/library");
         } catch (err) {
             setError(err.message);
@@ -76,6 +67,7 @@ export default function SignInPage() {
                         required
                         variant="outlined"
                         sx={styles.input}
+                        autoComplete="off"
                     />
 
                     {error && (
