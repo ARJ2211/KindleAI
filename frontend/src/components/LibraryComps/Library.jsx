@@ -1,14 +1,9 @@
 import { useState, useEffect } from "react";
 import { Box, Typography, CircularProgress } from "@mui/material";
 import AutoStoriesIcon from "@mui/icons-material/AutoStories";
+import LibraryBar from "./LibraryBar.jsx";
 import api from "../../api/axios.js";
 
-/**
- * Thisis a default cover photo when there is
- * no link or a broken link for the cover image
- * @param {string} title
- * @returns
- */
 const DefaultCover = ({ title }) => (
     <Box
         sx={{
@@ -43,13 +38,6 @@ const DefaultCover = ({ title }) => (
     </Box>
 );
 
-/**
- * This is the status chip for
- * AI Ready or TTS ready
- * @param {Boolean} ready Boolean value if the status is ready or not
- * @param {string} label The text for the chip
- * @returns
- */
 const StatusChip = ({ ready, label }) => (
     <Box sx={{ display: "flex", alignItems: "center", gap: 0.8 }}>
         <Box
@@ -116,10 +104,15 @@ const BookCard = ({ book }) => {
     );
 };
 
-export default function Library() {
+export default function Library({ onUpload, uploading }) {
     const [books, setBooks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [filters, setFilters] = useState({
+        search: "",
+        aiReady: false,
+        ttsReady: false,
+    });
 
     const fetchLibrary = async () => {
         try {
@@ -135,6 +128,21 @@ export default function Library() {
     useEffect(() => {
         fetchLibrary();
     }, []);
+
+    const filteredBooks = books.filter((book) => {
+        const query = filters.search.toLowerCase();
+
+        if (query) {
+            const matchesTitle = book.title.toLowerCase().includes(query);
+            const matchesAuthor = book.author.toLowerCase().includes(query);
+            if (!matchesTitle && !matchesAuthor) return false;
+        }
+
+        if (filters.aiReady && !book.embedding_ready) return false;
+        if (filters.ttsReady && !book.tts_ready) return false;
+
+        return true;
+    });
 
     if (loading) {
         return (
@@ -154,24 +162,51 @@ export default function Library() {
         );
     }
 
-    if (books.length === 0) {
-        return (
-            <Box sx={styles.empty}>
-                <AutoStoriesIcon
-                    sx={{ fontSize: 48, color: "rgba(0,224,255,0.15)" }}
-                />
-                <Typography sx={styles.emptyText}>
-                    No books yet. Upload an EPUB to get started.
-                </Typography>
-            </Box>
-        );
-    }
-
     return (
-        <Box sx={styles.grid}>
-            {books.map((book) => (
-                <BookCard key={book._id} book={book} />
-            ))}
+        <Box>
+            <LibraryBar
+                onUpload={onUpload}
+                uploading={uploading}
+                filters={filters}
+                onFilterChange={setFilters}
+            />
+
+            {books.length === 0 ? (
+                <Box sx={styles.empty}>
+                    <AutoStoriesIcon
+                        sx={{ fontSize: 48, color: "rgba(0,224,255,0.15)" }}
+                    />
+                    <Typography sx={styles.emptyText}>
+                        No books yet. Upload an EPUB to get started.
+                    </Typography>
+                </Box>
+            ) : filteredBooks.length === 0 ? (
+                <Box sx={styles.empty}>
+                    <Typography sx={styles.emptyText}>
+                        No books match your search.
+                    </Typography>
+                </Box>
+            ) : (
+                <Box sx={styles.grid}>
+                    {filteredBooks.map((book) => (
+                        // TODO: We need to actually handle the clicks here later
+                        <Box
+                            component="div"
+                            onClick={() => {
+                                console.log(book);
+                            }}
+                        >
+                            <BookCard
+                                key={book._id}
+                                book={book}
+                                onClick={() => {
+                                    console.log(book);
+                                }}
+                            />
+                        </Box>
+                    ))}
+                </Box>
+            )}
         </Box>
     );
 }
@@ -233,7 +268,7 @@ const styles = {
         fontSize: "0.85rem",
         color: "#fff",
         lineHeight: 1.3,
-        height: "2.5em",
+        height: "2.6em",
         overflow: "hidden",
         textOverflow: "ellipsis",
         display: "-webkit-box",
