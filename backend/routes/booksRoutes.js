@@ -18,51 +18,17 @@ const router = Router();
  * PRIVATE: firebase token needed
  * ============================== */
 
-// Get API for getting the book by ID
-router
-    .get("/:id", verifyToken, async (req, res) => {
-        try {
-            const id = helper.isValidString(req.params.id);
-            const book = await bookData.getBookById(id);
-            return res.status(200).json(book);
-        } catch (e) {
-            return res.status(e.status || 500).json({
-                msg: e.msg || e.message || "Failed to fetch book",
-            });
-        }
-    })
-    .delete("/:id", verifyToken, async (req, res) => {
-        try {
-            const id = helper.isValidString(req.params.id);
-            const uid = req.user.uid;
-
-            const book = await bookData.getBookById(id);
-
-            if (book.first_uploaded_by === uid) {
-                const del = await bookData.deleteBookById(id);
-                if (!del) {
-                    return res
-                        .status(500)
-                        .json({ msg: "Internal Server Error" });
-                }
-
-                const delQdrant = await deleteBookVectors(id);
-                if (!delQdrant) {
-                    return res
-                        .status(500)
-                        .json({ msg: "Internal Server Error" });
-                }
-
-                return res
-                    .status(200)
-                    .json({ msg: `${book.title} deleted successfully` });
-            }
-        } catch (e) {
-            return res.status(e.status || 500).json({
-                msg: e.msg || e.message || "Failed to fetch book",
-            });
-        }
-    });
+// This API gets the entire library from the database :p
+router.get("/library", async (req, res) => {
+    try {
+        const data = await bookData.getCompleteLibrary();
+        return res.status(200).json(data);
+    } catch (e) {
+        return res.status(e.status || 500).json({
+            msg: e.msg || e.message || "Internal Server Error",
+        });
+    }
+});
 
 // API call for uploading books to persistent file storage
 router.post(
@@ -162,6 +128,52 @@ router.post(
         }
     },
 );
+
+// Get API for getting the book by ID
+router
+    .get("/:id", verifyToken, async (req, res) => {
+        try {
+            const id = helper.isValidString(req.params.id);
+            const book = await bookData.getBookById(id);
+            return res.status(200).json(book);
+        } catch (e) {
+            return res.status(e.status || 500).json({
+                msg: e.msg || e.message || "Failed to fetch book",
+            });
+        }
+    })
+    .delete("/:id", verifyToken, async (req, res) => {
+        try {
+            const id = helper.isValidString(req.params.id);
+            const uid = req.user.uid;
+
+            const book = await bookData.getBookById(id);
+
+            if (book.first_uploaded_by === uid) {
+                const del = await bookData.deleteBookById(id);
+                if (!del) {
+                    return res
+                        .status(500)
+                        .json({ msg: "Internal Server Error" });
+                }
+
+                const delQdrant = await deleteBookVectors(id);
+                if (!delQdrant) {
+                    return res
+                        .status(500)
+                        .json({ msg: "Internal Server Error" });
+                }
+
+                return res
+                    .status(200)
+                    .json({ msg: `${book.title} deleted successfully` });
+            }
+        } catch (e) {
+            return res.status(e.status || 500).json({
+                msg: e.msg || e.message || "Failed to fetch book",
+            });
+        }
+    });
 
 // Catches multer errors (wrong file type, too large, ...)
 router.use((err, _req, res, _next) => {

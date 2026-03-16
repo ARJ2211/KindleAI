@@ -100,6 +100,19 @@ export const createBook = async (
 };
 
 /**
+ * Get all the books that are in the library
+ */
+export const getCompleteLibrary = async () => {
+    const col = await books();
+    try {
+        const collection = await col.find({}).toArray();
+        return collection;
+    } catch (e) {
+        helper.throwError(500, "Internal Server Error");
+    }
+};
+
+/**
  * Get a single book by its MongoDB ObjectId.
  *
  * @param {string} bookId
