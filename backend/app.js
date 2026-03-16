@@ -12,6 +12,14 @@ export const fireBaseApp = admin.initializeApp({
     credential: admin.credential.cert("./serviceAccountKey.json"),
 });
 
+process.on("uncaughtException", (err) => {
+    console.error("[uncaughtException]:", err);
+});
+
+process.on("unhandledRejection", (err) => {
+    console.error("[unhandledRejection]:", err);
+});
+
 // ================ EXPRESS ================
 app.use(logger);
 app.use(cors());

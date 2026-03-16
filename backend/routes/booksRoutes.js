@@ -81,7 +81,6 @@ router.post(
                 googleMeta?.description || metadata.description || "";
             const finalCover = googleMeta?.cover_url || "";
 
-            console.log(req.user);
             const uid = req.user.uid;
             const book = await bookData.createBook(
                 hash,
