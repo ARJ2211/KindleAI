@@ -1,22 +1,21 @@
 import { useState } from "react";
-import { Box, Button, Alert, CircularProgress } from "@mui/material";
+import { Box, Button, CircularProgress } from "@mui/material";
 import Navbar from "../components/Navbar.jsx";
+import AlertPopup from "../components/AlertPopup.jsx";
 import api from "../api/axios.js";
 
 import "../css/LandingPage.css";
 
 export default function HomePage() {
     const [uploading, setUploading] = useState(false);
-    const [message, setMessage] = useState(null);
-    const [error, setError] = useState(null);
+    const [alert, setAlert] = useState(null);
 
     const handleUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
         setUploading(true);
-        setMessage(null);
-        setError(null);
+        setAlert(null);
 
         try {
             const formData = new FormData();
@@ -24,13 +23,17 @@ export default function HomePage() {
 
             const res = await api.post("/book/upload_book", formData);
 
-            setMessage(
-                res.data.deduplicated
+            setAlert({
+                message: res.data.deduplicated
                     ? `"${res.data.book.title}" already in library`
                     : `"${res.data.book.title}" uploaded — indexing in background`,
-            );
+                severity: res.data.deduplicated ? "warning" : "success",
+            });
         } catch (err) {
-            setError(err.response?.data?.msg || err.message);
+            setAlert({
+                message: err.response?.data?.msg || err.message,
+                severity: "error",
+            });
         } finally {
             setUploading(false);
             e.target.value = "";
@@ -58,18 +61,13 @@ export default function HomePage() {
                         onChange={handleUpload}
                     />
                 </Button>
-
-                {message && (
-                    <Alert severity="success" sx={{ mt: 2 }}>
-                        {message}
-                    </Alert>
-                )}
-                {error && (
-                    <Alert severity="error" sx={{ mt: 2 }}>
-                        {error}
-                    </Alert>
-                )}
             </Box>
+
+            <AlertPopup
+                message={alert?.message}
+                severity={alert?.severity}
+                onClose={() => setAlert(null)}
+            />
         </Box>
     );
 }
