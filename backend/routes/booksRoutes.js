@@ -9,6 +9,7 @@ import { verifyToken } from "../middleware/auth.js";
 import { parseEpub } from "../utils/epubParser.js";
 
 import * as helper from "../helper.js";
+import * as redis from "../config/redisClient.js";
 import * as bookData from "../data/bookData.js";
 
 const upload = await getUpload();
@@ -21,7 +22,17 @@ const router = Router();
 // This API gets the entire library from the database :p
 router.get("/library", async (req, res) => {
     try {
+        // Try cache first
+        const cached = await redis.getCache("library:all");
+        if (cached) {
+            return res.status(200).json(cached);
+        }
+
         const data = await bookData.getCompleteLibrary();
+
+        // Cache for 10 minutes
+        await redis.setCache("library:all", data, 600);
+
         return res.status(200).json(data);
     } catch (e) {
         return res.status(e.status || 500).json({
@@ -82,6 +93,8 @@ router.post(
                 uid,
                 googleMeta,
             );
+
+            await redis.delCache("library:all").catch(() => {});
 
             const bookId = book._id.toString();
 
