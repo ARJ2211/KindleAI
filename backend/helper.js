@@ -57,32 +57,32 @@ export const isValidEmail = (val) => {
 export const isValidDisplayName = async (val) => {
     const displayName = isValidString(val);
 
+    if (displayName.length < 2) {
+        throwError(400, "displayName must be at least 2 characters long");
+    }
+
+    if (displayName.length > 20) {
+        throwError(400, "displayName must be at most 20 characters long");
+    }
+
+    // NO SPECIAL CHARS
+    if (!/^[a-zA-Z0-9_ ]+$/.test(displayName)) {
+        throwError(
+            400,
+            "displayName can only contain letters, numbers, spaces, and underscores",
+        );
+    }
+
     const usersCol = await users();
     const existing = await usersCol.findOne({
-        display_name: displayName,
+        display_name: { $regex: `^${displayName}$`, $options: "i" },
     });
+
     if (existing) {
-        throw {
-            status: 409,
-            msg: `Display name ${displayName} is already taken`,
-        };
+        throwError(409, `Display name "${displayName}" is already taken`);
     }
 
-    if (val.length < 2) {
-        throwError(
-            400,
-            `ERROR: displayName must be at least 2 characters long`,
-        );
-    }
-
-    if (val.length > 20) {
-        throwError(
-            400,
-            `ERROR: displayName must be at most 20 characters long`,
-        );
-    }
-
-    return val;
+    return displayName;
 };
 
 /**

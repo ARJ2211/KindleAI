@@ -20,7 +20,7 @@ const router = Router();
 
 // Get API for getting the book by ID
 router
-    .get("/:id", async (req, res) => {
+    .get("/:id", verifyToken, async (req, res) => {
         try {
             const id = helper.isValidString(req.params.id);
             const book = await bookData.getBookById(id);
@@ -31,17 +31,14 @@ router
             });
         }
     })
-    .delete("/:id", async (req, res) => {
+    .delete("/:id", verifyToken, async (req, res) => {
         try {
             const id = helper.isValidString(req.params.id);
-
-            // TODO: Remove the hardcoded value later
-            const user = { uid: "ZBkHEebb5sQ3hMY8zeQgkN2aoom2" };
-            // const user = req.user?.uid
+            const uid = req.user.uid;
 
             const book = await bookData.getBookById(id);
 
-            if (book.first_uploaded_by === user.uid) {
+            if (book.first_uploaded_by === uid) {
                 const del = await bookData.deleteBookById(id);
                 if (!del) {
                     return res
@@ -68,10 +65,9 @@ router
     });
 
 // API call for uploading books to persistent file storage
-// TODO: Need to use the verify token here. Currently hardcoded
 router.post(
     "/upload_book",
-    // verifyToken,
+    verifyToken,
     upload.single("epub"),
     async (req, res) => {
         let finalPath = null;
@@ -108,9 +104,8 @@ router.post(
                 googleMeta?.description || metadata.description || "";
             const finalCover = googleMeta?.cover_url || "";
 
-            // TODO: replace hardcoded uid
-            const uid = "ZBkHEebb5sQ3hMY8zeQgkN2aoom2";
-            // const uid = req.user.uid;
+            console.log(req.user);
+            const uid = req.user.uid;
             const book = await bookData.createBook(
                 hash,
                 finalTitle,

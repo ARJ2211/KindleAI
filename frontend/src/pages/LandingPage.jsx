@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
 import { useAuth } from "../context/AuthContext.jsx";
-import { auth } from "../firebase/config.js";
+import Navbar from "../components/NavBar.jsx";
 
 import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
+
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
@@ -1391,62 +1393,7 @@ export default function LandingPage() {
             <div className="vignette" />
 
             {/* NAV */}
-            <nav className="lp-nav">
-                <Link to="/" className="lp-nav-logo">
-                    <span className="logo-k">K</span>
-                    <span className="logo-dot">.</span>
-                    <span className="logo-ai">AI</span>
-                </Link>
-                <div className="lp-nav-center">
-                    <a href="#features" className="nav-anchor">
-                        Features
-                    </a>
-                    <a href="#how-it-works" className="nav-anchor">
-                        How it Works
-                    </a>
-                    <a href="#in-action" className="nav-anchor">
-                        In Action
-                    </a>
-                </div>
-                <div className="lp-nav-links">
-                    {user ? (
-                        <>
-                            <Button
-                                component={Link}
-                                to="/home"
-                                className="nav-btn-ghost"
-                            >
-                                Library
-                            </Button>
-                            <Button
-                                onClick={async () => {
-                                    await auth.signOut();
-                                }}
-                                className="nav-btn-primary"
-                            >
-                                Sign Out
-                            </Button>
-                        </>
-                    ) : (
-                        <>
-                            <Button
-                                component={Link}
-                                to="/signin"
-                                className="nav-btn-ghost"
-                            >
-                                Sign In
-                            </Button>
-                            <Button
-                                component={Link}
-                                to="/signup"
-                                className="nav-btn-primary"
-                            >
-                                Sign Up
-                            </Button>
-                        </>
-                    )}
-                </div>
-            </nav>
+            <Navbar />
 
             {/* HERO */}
             <section className="lp-hero">
