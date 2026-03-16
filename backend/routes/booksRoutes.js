@@ -23,15 +23,15 @@ const router = Router();
 router.get("/library", async (req, res) => {
     try {
         // Try cache first
-        const cached = await redis.getCache("library:all");
-        if (cached) {
-            return res.status(200).json(cached);
-        }
+        // const cached = await redis.getCache("library:all-unstable");
+        // if (cached) {
+        //     return res.status(200).json(cached);
+        // }
 
         const data = await bookData.getCompleteLibrary();
 
         // Cache for 10 minutes
-        await redis.setCache("library:all", data, 600);
+        // await redis.setCache("library:all", data, 600);
 
         return res.status(200).json(data);
     } catch (e) {
