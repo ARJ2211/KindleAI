@@ -4,6 +4,7 @@ import cors from "cors";
 
 import configRoutes from "./routes/index.js";
 import { logger } from "./middleware/logger.js";
+import uploadsRoutes from "./routes/uploads.js";
 
 const app = express();
 const PORT = 3000;
@@ -17,6 +18,7 @@ app.use(logger);
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use("/api/uploads", uploadsRoutes);
 
 configRoutes(app);
 
