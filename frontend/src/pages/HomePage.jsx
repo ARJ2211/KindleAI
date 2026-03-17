@@ -57,6 +57,7 @@ export default function HomePage() {
                         key={refreshKey}
                         onUpload={handleUpload}
                         uploading={uploading}
+                        onAlert={setAlert}
                     />
                 );
             case "My Books":

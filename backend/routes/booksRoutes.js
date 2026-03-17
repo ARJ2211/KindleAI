@@ -179,6 +179,12 @@ router
                 return res
                     .status(200)
                     .json({ msg: `${book.title} deleted successfully` });
+            } else {
+                return res
+                    .status(403)
+                    .json({
+                        msg: "Please contact the owner of the book to delete it",
+                    });
             }
         } catch (e) {
             return res.status(e.status || 500).json({
