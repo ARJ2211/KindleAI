@@ -147,5 +147,8 @@ vite.config.ts.timestamp-*
 # Secrets and firebase
 serviceAccountKey.json
 
+# Uploads -- THIS HAS ALL THE FILES THAT USER WILL UPLOAD
+uploads
+
 # TMUX panes
 mysession.sh

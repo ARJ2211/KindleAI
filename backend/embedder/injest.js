@@ -1,4 +1,4 @@
-import { parseEpub } from "./epubParser.js";
+import { parseEpub } from "../utils/epubParser.js";
 import { chunkChapters } from "./chunker.js";
 import { embedBatch } from "./embedder.js";
 import {

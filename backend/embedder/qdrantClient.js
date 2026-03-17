@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { QdrantClient } from "@qdrant/js-client-rest";
 import { VECTOR_DIM } from "./embedder.js";
+import { throwError } from "../helper.js";
 
 const QDRANT_URL = process.env.QDRANT_URL || "http://localhost:6333";
 const COLLECTION = "book_chunks";
@@ -113,12 +114,20 @@ export async function searchBook(queryVector, bookId, topK = 5) {
 export async function deleteBookVectors(bookId) {
     const client = getClient();
 
-    await client.delete(COLLECTION, {
-        wait: true,
-        filter: {
-            must: [{ key: "bookId", match: { value: bookId } }],
-        },
-    });
+    try {
+        await client.delete(COLLECTION, {
+            wait: true,
+            filter: {
+                must: [{ key: "bookId", match: { value: bookId } }],
+            },
+        });
 
-    console.log(`[qdrant] Deleted all chunks for book ${bookId}`);
+        console.log(`[qdrant] Deleted all chunks for book ${bookId}`);
+        return true;
+    } catch (e) {
+        console.log(`[qdrant] Failed to delete book ${bookId}`);
+        throwError(500, "Failed to delete book vector");
+    }
+
+    return false;
 }

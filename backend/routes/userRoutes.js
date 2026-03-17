@@ -5,6 +5,7 @@ import { verifyToken } from "../middleware/auth.js";
 import * as redis from "../config/redisClient.js";
 import * as helper from "../helper.js";
 import * as userData from "../data/userData.js";
+import { verify } from "node:crypto";
 
 const router = Router();
 
@@ -53,6 +54,20 @@ router.post("/signup", async (req, res) => {
 /** ===============================
  * PROTECTED: firebase token needed
  * ============================== */
+
+// Get the email ID of a verified firebase user
+router.get("/getEmail/:id", verifyToken, async (req, res) => {
+    try {
+        const id = helper.isValidString(req.params.id);
+        const data = await userData.getUserById(id);
+
+        return res.json({ email: data.email });
+    } catch (e) {
+        return res.status(e.status || 500).json({
+            msg: e.msg || "Internal server error",
+        });
+    }
+});
 
 // Get current user profile
 router.get("/me", verifyToken, async (req, res) => {
