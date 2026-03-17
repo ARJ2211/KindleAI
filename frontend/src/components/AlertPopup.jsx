@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Alert } from "@mui/material";
 
@@ -33,6 +34,12 @@ const severityStyles = {
 };
 
 export default function AlertPopup({ message, severity = "success", onClose }) {
+    useEffect(() => {
+        if (!message) return;
+        const timer = setTimeout(onClose, 2000);
+        return () => clearTimeout(timer);
+    }, [message]);
+
     if (!message) return null;
 
     return createPortal(
