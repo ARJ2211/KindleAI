@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Box, Button, CircularProgress, Typography } from "@mui/material";
+import { Box } from "@mui/material";
 
 import AlertPopup from "../components/AlertPopup.jsx";
 import Library from "../components/LibraryComps/Library.jsx";
+import MyBooks from "../components/LibraryComps/MyBooks/MyBooks.jsx"; 
 import Navbar from "../components/NavBar.jsx";
 
 import api from "../api/axios.js";
@@ -34,7 +35,6 @@ export default function HomePage() {
                 severity: res.data.deduplicated ? "warning" : "success",
             });
 
-            // Refresh library after successful upload
             if (!res.data.deduplicated) {
                 setRefreshKey((prev) => prev + 1);
             }
@@ -61,17 +61,10 @@ export default function HomePage() {
                     />
                 );
             case "My Books":
-                return (
-                    <Typography sx={{ color: "#52525b" }}>
-                        My Books — coming soon
-                    </Typography>
-                );
+                return <MyBooks onAlert={setAlert} />;  
             case "Bookmarks":
-                return (
-                    <Typography sx={{ color: "#52525b" }}>
-                        Bookmarks — coming soon
-                    </Typography>
-                );
+                
+                return null;
             default:
                 return null;
         }

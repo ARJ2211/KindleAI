@@ -22,6 +22,7 @@ export async function createUser(firebaseUid, email, displayName) {
         email: email,
         display_name: displayName,
         created_at: new Date(),
+        my_books: [],
         preferences: {
             theme: "light",
             font_size: 16,
@@ -151,5 +152,69 @@ export async function updatePreferences(firebaseUid, prefs) {
         throw { status: 404, msg: `User ${firebaseUid} not found` };
     }
 
+    return result;
+}
+
+/**
+ * Add a book to the user's personal "My Books" list.
+ * 
+ *
+ * @param {string} firebaseUid
+ * @param {string} bookId 
+ * @returns {object} 
+ */
+export async function addToMyBooks(firebaseUid, bookId) {
+    if (!firebaseUid) throw { status: 400, msg: "firebaseUid is required" };
+    bookId = helper.isValidString(bookId);
+
+    const usersCol = await users();
+    const result = await usersCol.findOneAndUpdate(
+        { _id: firebaseUid },
+        { $addToSet: { my_books: bookId } },
+        { returnDocument: "after" },
+    );
+
+    if (!result) throw { status: 404, msg: `User ${firebaseUid} not found` };
+    return result;
+}
+
+/**
+ * Get the list of book IDs saved in the user's "My Books".
+ *
+ * @param {string} firebaseUid
+ * @returns {string[]} 
+ */
+export async function getMyBookIds(firebaseUid) {
+    if (!firebaseUid) throw { status: 400, msg: "firebaseUid is required" };
+
+    const usersCol = await users();
+    const user = await usersCol.findOne(
+        { _id: firebaseUid },
+        { projection: { my_books: 1 } },
+    );
+
+    if (!user) throw { status: 404, msg: `User ${firebaseUid} not found` };
+    return user.my_books || [];
+}
+
+/**
+ * Remove a book from the user's "My Books" list.
+ *
+ * @param {string} firebaseUid
+ * @param {string} bookId
+ * @returns {object} 
+ */
+export async function removeFromMyBooks(firebaseUid, bookId) {
+    if (!firebaseUid) throw { status: 400, msg: "firebaseUid is required" };
+    bookId = helper.isValidString(bookId);
+
+    const usersCol = await users();
+    const result = await usersCol.findOneAndUpdate(
+        { _id: firebaseUid },
+        { $pull: { my_books: bookId } },
+        { returnDocument: "after" },
+    );
+
+    if (!result) throw { status: 404, msg: `User ${firebaseUid} not found` };
     return result;
 }

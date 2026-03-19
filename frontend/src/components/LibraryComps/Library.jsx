@@ -46,12 +46,26 @@ export default function Library({ onUpload, uploading, onAlert }) {
         }
     };
 
-    const handleAdd = (book) => {
-        console.log("Adding to user's library...", book);
-        onAlert?.({
-            message: `"${book.title}" added to My Books`,
-            severity: "success",
-        });
+    const handleAdd = async (book) => {
+        try {
+            await api.post(`/user/my-books/${book._id}`);
+            onAlert?.({
+                message: `"${book.title}" added to My Books`,
+                severity: "success",
+            });
+        } catch (err) {
+            if (err.response?.status === 409) {
+                onAlert?.({
+                    message: `"${book.title}" is already in My Books`,
+                    severity: "warning",
+                });
+            } else {
+                onAlert?.({
+                    message: err.response?.data?.msg || "Failed to add book",
+                    severity: "error",
+                });
+            }
+        }
     };
 
     const filteredBooks = books.filter((book) => {
