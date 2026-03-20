@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Box, Typography, IconButton, Tooltip, LinearProgress } from "@mui/material";
 import AutoStoriesIcon from "@mui/icons-material/AutoStories";
 import FavoriteIcon from "@mui/icons-material/Favorite";
@@ -41,12 +42,13 @@ const DefaultCover = ({ title }) => (
 
 export default function MyBookCard({ book, onFavorite, onRemove }) {
     const [imgError, setImgError] = useState(false);
+    const navigate = useNavigate();
     const hasCover = book.cover_asset_key && !imgError;
 
     const progress = book.progress_percent || 0;
 
     return (
-        <Box sx={styles.card}>
+        <Box sx={styles.card} onClick={() => navigate(`/reader/${book._id}`)}>
             <Box sx={styles.glowTrack} className="glow-track" />
 
             <Box sx={styles.actions} className="card-actions">
