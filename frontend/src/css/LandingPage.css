@@ -201,8 +201,9 @@ html { scroll-behavior: smooth; }
 @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
 
 @media (max-width: 960px) {
-    .terminal-section { flex-direction: column; }
-    .terminal-left { flex: none; }
+    .terminal-section { flex-direction: column; align-items: center; gap: 40px; }
+    .terminal-left { flex: none; text-align: center; }
+    .terminal-wrap { width: 100%; min-width: 0; }
 }
 
 /* === FOOTER === */
@@ -225,8 +226,11 @@ html { scroll-behavior: smooth; }
 @media (max-width: 640px) {
     .lp-nav { padding: 16px 20px; }
     .lp-features, .lp-how { padding-left: 20px; padding-right: 20px; }
+    .lp-final-cta { padding-left: 20px; padding-right: 20px; }
     .step { flex-direction: column; gap: 12px; }
     .step-num { text-align: left; }
     .step-connector { margin-left: 20px; }
     .hero-title-scramble { font-size: clamp(2.5rem, 12vw, 4rem); }
+    .terminal-body { font-size: 11px; }
+    .terminal-wrap { overflow-x: auto; }
 }

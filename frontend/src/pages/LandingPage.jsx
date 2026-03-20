@@ -1426,26 +1426,15 @@ export default function LandingPage() {
                                     Enter Library
                                 </MagneticButton>
                             ) : (
-                                <>
-                                    <MagneticButton
-                                        component={Link}
-                                        to="/signup"
-                                        variant="contained"
-                                        className="hero-cta cta-primary"
-                                        size="large"
-                                    >
-                                        Start Reading — Free
-                                    </MagneticButton>
-                                    <MagneticButton
-                                        component={Link}
-                                        to="/signin"
-                                        variant="outlined"
-                                        className="hero-cta cta-ghost"
-                                        size="large"
-                                    >
-                                        Sign In
-                                    </MagneticButton>
-                                </>
+                                <MagneticButton
+                                    component={Link}
+                                    to="/signin"
+                                    variant="contained"
+                                    className="hero-cta cta-primary"
+                                    size="large"
+                                >
+                                    Start Reading
+                                </MagneticButton>
                             )}
                         </Box>
                     </Box>
