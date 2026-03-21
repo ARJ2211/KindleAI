@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Box, Typography, IconButton, Tooltip, LinearProgress } from "@mui/material";
+import {
+    Box,
+    Typography,
+    IconButton,
+    Tooltip,
+    LinearProgress,
+} from "@mui/material";
 import AutoStoriesIcon from "@mui/icons-material/AutoStories";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
