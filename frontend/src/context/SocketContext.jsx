@@ -37,6 +37,12 @@ export function SocketProvider({ children }) {
         connectSocket().then((s) => {
             if (cancelled || !s) return;
 
+            // Check if already connected (event already fired)
+            if (s.connected) {
+                console.log("[socket] Already connected:", s.id);
+                setConnected(true);
+            }
+
             s.on("connect", () => {
                 console.log("[socket] Connected:", s.id);
                 setConnected(true);

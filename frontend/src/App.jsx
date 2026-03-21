@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
+import { SocketProvider } from "./context/SocketContext.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
 import SignUpPage from "./pages/SignUpPage.jsx";
@@ -51,7 +52,9 @@ function App() {
     return (
         <BrowserRouter>
             <AuthProvider>
-                <AppRoutes />
+                <SocketProvider>
+                    <AppRoutes />
+                </SocketProvider>
             </AuthProvider>
         </BrowserRouter>
     );

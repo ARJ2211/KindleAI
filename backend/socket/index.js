@@ -1,4 +1,5 @@
 import { Server } from "socket.io";
+import { socketAuth } from "./authMiddleware.js";
 
 let io = null;
 
@@ -21,6 +22,8 @@ export const initSocket = (httpServer) => {
             methods: ["GET", "POST"],
         },
     });
+
+    io.use(socketAuth);
 
     io.on("connection", (socket) => {
         const uid = socket.uid;

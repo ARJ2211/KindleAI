@@ -11,6 +11,7 @@ import { parseEpub } from "../utils/epubParser.js";
 import * as helper from "../helper.js";
 import * as redis from "../config/redisClient.js";
 import * as bookData from "../data/bookData.js";
+import { emitIngestProgress } from "../socket/ingestHandler.js";
 
 const upload = await getUpload();
 const router = Router();
@@ -99,27 +100,39 @@ router.post(
 
             // BACKGROUND INGESTION. DO NOT AWAIT HERE!
             // THIS IS A WORKER THAT WILL SPAWN A NEW THREAD
-            // AND RUN IN THE BACKGROUND
-            ingestWorker(finalPath, bookId, async (err) => {
-                try {
-                    if (err) {
-                        console.error(
-                            `[upload] Ingestion failed for "${finalTitle}" (${bookId}):`,
-                            err.message,
+            // AND RUN IN THE BACKGROUND. EMIT SOCKET CALLS FROM
+            // HERE TOO.
+            ingestWorker(
+                finalPath,
+                bookId,
+                async (err) => {
+                    try {
+                        if (err) {
+                            console.error(
+                                `[upload] Ingestion failed for "${finalTitle}" (${bookId}):`,
+                                err.message,
+                            );
+                            emitIngestProgress(uid, bookId, {
+                                stage: "error",
+                                error: err.message,
+                            });
+                            return;
+                        }
+                        await bookData.markEmbeddingReady(bookId);
+                        console.log(
+                            `[upload] Ingestion complete for "${finalTitle}" (${bookId})`,
                         );
-                        return;
+                    } catch (e) {
+                        console.error(
+                            `[upload] Post-ingestion error for "${finalTitle}" (${bookId}):`,
+                            e.message,
+                        );
                     }
-                    await bookData.markEmbeddingReady(bookId);
-                    console.log(
-                        `[upload] Ingestion complete for "${finalTitle}" (${bookId})`,
-                    );
-                } catch (e) {
-                    console.error(
-                        `[upload] Post-ingestion error for "${finalTitle}" (${bookId}):`,
-                        e.message,
-                    );
-                }
-            });
+                },
+                (progress) => {
+                    emitIngestProgress(bookId, uid, progress);
+                },
+            );
 
             return res.status(201).json({
                 msg: "Book uploaded successfully",
@@ -180,11 +193,9 @@ router
                     .status(200)
                     .json({ msg: `${book.title} deleted successfully` });
             } else {
-                return res
-                    .status(403)
-                    .json({
-                        msg: "Please contact the owner of the book to delete it",
-                    });
+                return res.status(403).json({
+                    msg: "Please contact the owner of the book to delete it",
+                });
             }
         } catch (e) {
             return res.status(e.status || 500).json({

@@ -2,8 +2,11 @@ import express from "express";
 import admin from "firebase-admin";
 import cors from "cors";
 
+import { createServer } from "http";
+
 import configRoutes from "./routes/index.js";
 import { logger } from "./middleware/logger.js";
+import { initSocket } from "./socket/index.js";
 
 const app = express();
 const PORT = 3000;
@@ -28,6 +31,11 @@ app.use(express.urlencoded({ extended: true }));
 
 configRoutes(app);
 
-app.listen(PORT, () => {
+// ================ SOCKET.IO ===============
+const httpServer = createServer(app);
+initSocket(httpServer);
+
+// ================ RUN SERVER ==============
+httpServer.listen(PORT, () => {
     console.log(`\n\n[server] Server listening on port: ${PORT}`);
 });

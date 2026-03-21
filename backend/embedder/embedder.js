@@ -39,9 +39,10 @@ export async function embedText(text) {
  *
  * @param {string[]} texts
  * @param {number} batchSize default 16
+ * @param {function} [onProgress] called with (doneCount) after each batch
  * @returns {number[][]} vector embedding
  */
-export async function embedBatch(texts, batchSize = 16) {
+export async function embedBatch(texts, batchSize = 16, onProgress) {
     const model = await getEmbedder();
     const vectors = [];
 
@@ -61,6 +62,10 @@ export async function embedBatch(texts, batchSize = 16) {
             console.log(
                 `[embedder] Embedded ${Math.min(i + batchSize, texts.length)}/${texts.length} chunks`,
             );
+        }
+        const done = Math.min(i + batchSize, texts.length);
+        if (onProgress) {
+            onProgress(done);
         }
     }
 
