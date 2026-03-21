@@ -5,6 +5,7 @@ import LandingPage from "./pages/LandingPage.jsx";
 import SignUpPage from "./pages/SignUpPage.jsx";
 import SignInPage from "./pages/SignInPage.jsx";
 import HomePage from "./pages/HomePage.jsx";
+import ReaderPage from "./pages/ReaderPage.jsx";
 
 function AppRoutes() {
     const { user, loading } = useAuth();
@@ -31,6 +32,14 @@ function AppRoutes() {
                 element={
                     <ProtectedRoute>
                         <HomePage />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/reader/:bookId"
+                element={
+                    <ProtectedRoute>
+                        <ReaderPage />
                     </ProtectedRoute>
                 }
             />
