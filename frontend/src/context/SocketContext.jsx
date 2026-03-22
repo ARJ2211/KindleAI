@@ -6,7 +6,7 @@ import {
     useCallback,
 } from "react";
 import { useAuth } from "./AuthContext.jsx";
-import { connectSocket, disconnectSocket, getSocket } from "../socket.js";
+import { connectSocket, disconnectSocket } from "../socket.js";
 
 // creating the docket context here.
 const SocketContext = createContext(null);
@@ -21,14 +21,17 @@ export function SocketProvider({ children }) {
     const [connected, setConnected] = useState(false);
 
     // THESE ARE THE GLOBAL REQUIREMENTS (EVERY USER SHOULD GET THIS)
-    const [ingestProgress, setIngestProgress] = useState(null);
+
+    // I need to create a map of bookID with prog obj
+    const [ingestMap, setIngestMap] = useState({});
     // ==============================================================
+
     // Connect / disconnect with auth state
     useEffect(() => {
         if (!user) {
             disconnectSocket();
             setConnected(false);
-            setIngestProgress(null);
+            setIngestMap({});
             return;
         }
 
@@ -37,7 +40,6 @@ export function SocketProvider({ children }) {
         connectSocket().then((s) => {
             if (cancelled || !s) return;
 
-            // Check if already connected (event already fired)
             if (s.connected) {
                 console.log("[socket] Already connected:", s.id);
                 setConnected(true);
@@ -53,22 +55,24 @@ export function SocketProvider({ children }) {
                 setConnected(false);
             });
 
-            // Listen for ingest progress globally
             s.on("ingest:progress", (data) => {
                 const total = data.total || 0;
                 const done = data.done || 0;
                 const percent =
                     total > 0 ? Math.round((done / total) * 100) : 0;
 
-                setIngestProgress({
-                    bookId: data.bookId,
-                    stage: data.stage,
-                    done,
-                    total,
-                    percent,
-                    message: data.message || null,
-                    error: data.error || null,
-                });
+                setIngestMap((prev) => ({
+                    ...prev,
+                    [data.bookId]: {
+                        bookId: data.bookId,
+                        stage: data.stage,
+                        done,
+                        total,
+                        percent,
+                        message: data.message || null,
+                        error: data.error || null,
+                    },
+                }));
             });
         });
 
@@ -79,19 +83,19 @@ export function SocketProvider({ children }) {
         };
     }, [user]);
 
-    const isIngesting =
-        ingestProgress !== null &&
-        ingestProgress.stage !== "complete" &&
-        ingestProgress.stage !== "error";
-
-    const resetIngestProgress = useCallback(() => setIngestProgress(null), []);
+    const resetIngestProgress = (bookId) => {
+        setIngestMap((prev) => {
+            const next = { ...prev };
+            delete next[bookId];
+            return next;
+        });
+    };
 
     return (
         <SocketContext.Provider
             value={{
                 connected,
-                ingestProgress,
-                isIngesting,
+                ingestMap,
                 resetIngestProgress,
             }}
         >

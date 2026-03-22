@@ -88,10 +88,10 @@ export default function BookCard({ book, onDelete, onAdd }) {
     const [modalOpen, setModalOpen] = useState(false);
     const hasCover = book.cover_asset_key && !imgError;
 
-    const { ingestProgress } = useSocket();
-
+    const { ingestMap } = useSocket();
+    const ingestProgress = ingestMap[book._id] || null;
     // Only show progress if it's for THIS book and not done yet
-    const isThisBook = ingestProgress?.bookId === book._id;
+    const isThisBook = !!ingestProgress;
     const isActive =
         isThisBook &&
         ingestProgress.stage !== "complete" &&
@@ -146,7 +146,7 @@ export default function BookCard({ book, onDelete, onAdd }) {
                     <Typography sx={styles.title}>{book.title}</Typography>
                     <Typography sx={styles.author}>{book.author}</Typography>
 
-                    {/* ── Ingest progress bar ── */}
+                    {/* Ingest progress bar */}
                     {isActive && (
                         <Box sx={styles.progressContainer}>
                             <Box sx={styles.progressHeader}>
@@ -169,7 +169,7 @@ export default function BookCard({ book, onDelete, onAdd }) {
                         </Box>
                     )}
 
-                    {/* ── Normal status chips (when not actively ingesting) ── */}
+                    {/* Normal status chips (when not actively ingesting) */}
                     {!isActive && (
                         <Box sx={styles.statusRow}>
                             <StatusChip
