@@ -1,10 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
+import { SocketProvider } from "./context/SocketContext.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import LandingPage from "./pages/LandingPage.jsx";
 import SignUpPage from "./pages/SignUpPage.jsx";
 import SignInPage from "./pages/SignInPage.jsx";
 import HomePage from "./pages/HomePage.jsx";
+import ReaderPage from "./pages/ReaderPage.jsx";
 
 function AppRoutes() {
     const { user, loading } = useAuth();
@@ -34,6 +36,14 @@ function AppRoutes() {
                     </ProtectedRoute>
                 }
             />
+            <Route
+                path="/reader/:bookId"
+                element={
+                    <ProtectedRoute>
+                        <ReaderPage />
+                    </ProtectedRoute>
+                }
+            />
         </Routes>
     );
 }
@@ -42,7 +52,9 @@ function App() {
     return (
         <BrowserRouter>
             <AuthProvider>
-                <AppRoutes />
+                <SocketProvider>
+                    <AppRoutes />
+                </SocketProvider>
             </AuthProvider>
         </BrowserRouter>
     );

@@ -1,16 +1,19 @@
 import { useState } from "react";
-import { Box } from "@mui/material";
+import { useSearchParams } from "react-router-dom";
+import { Box, Typography } from "@mui/material";
 
 import AlertPopup from "../components/AlertPopup.jsx";
 import Library from "../components/LibraryComps/Library.jsx";
-import MyBooks from "../components/LibraryComps/MyBooks/MyBooks.jsx"; 
+import MyBooks from "../components/MyBooksComps/MyBooks.jsx";
 import Navbar from "../components/NavBar.jsx";
 
 import api from "../api/axios.js";
 import "../css/LandingPage.css";
 
 export default function HomePage() {
-    const [activeTab, setActiveTab] = useState("Global Library");
+    const [searchParams, setSearchParams] = useSearchParams();
+    const activeTab = searchParams.get("tab") || "Global Library";
+    const setActiveTab = (tab) => setSearchParams({ tab });
     const [uploading, setUploading] = useState(false);
     const [alert, setAlert] = useState(null);
     const [refreshKey, setRefreshKey] = useState(0);
@@ -61,7 +64,7 @@ export default function HomePage() {
                     />
                 );
             case "My Books":
-                return <MyBooks onAlert={setAlert} />;  
+                return <MyBooks onAlert={setAlert} />;
             case "Bookmarks":
                 
                 return null;
