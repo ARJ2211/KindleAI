@@ -325,6 +325,8 @@ const styles = {
         fontSize: "0.8rem",
         color: "#52525b",
         lineHeight: 1.6,
+        maxHeight: "12.8em",
+        overflowY: "auto",
     },
     uploadedBy: {
         fontFamily: "'JetBrains Mono', monospace",
