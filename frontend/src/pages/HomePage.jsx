@@ -4,7 +4,7 @@ import { Box, Typography } from "@mui/material";
 
 import AlertPopup from "../components/AlertPopup.jsx";
 import Library from "../components/LibraryComps/Library.jsx";
-import MyBooks from "../components/LibraryComps/MyBooks.jsx";
+import MyBooks from "../components/MyBooksComps/MyBooks.jsx";
 import Navbar from "../components/NavBar.jsx";
 
 import api from "../api/axios.js";

@@ -15,17 +15,29 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
  * @param {string} workerFile one of the workers in workers/*.worker.js
  * @param {object} data data required for the worker
  * @param {function} onComplete simple callback
+ * @param {function} [onProgress] optional callback for intermediate progress
  */
-const spawnWorker = (workerFile, data, onComplete) => {
+const spawnWorker = (workerFile, data, onComplete, onProgress) => {
     const worker = new Worker(join(__dirname, workerFile), {
         workerData: data,
     });
 
     worker.on("message", (msg) => {
-        if (msg.success) {
-            onComplete(null, msg);
+        if (msg.type === "progress") {
+            if (onProgress) onProgress(msg);
+        } else if (msg.type === "done") {
+            if (msg.success) {
+                onComplete(null, msg);
+            } else {
+                onComplete(new Error(msg.error));
+            }
         } else {
-            onComplete(new Error(msg.error));
+            // Backwards compat: messages without type field
+            if (msg.success) {
+                onComplete(null, msg);
+            } else {
+                onComplete(new Error(msg.error));
+            }
         }
     });
 
@@ -50,10 +62,17 @@ export const testWorker = (onComplete) => {
  * This is the ingest worker that will be used to
  * ingest books and then dump into Qdrant
  *
+ *
  * @param {string} epubPath Path of the epub file on disk
- * @param {bookId} bookId MongoDB book ID
+ * @param {string} bookId MongoDB book ID
  * @param {function} onComplete Callback function
+ * @param {function} [onProgress] Optional progress callback ({ stage, done, total })
  */
-export const ingestWorker = (epubPath, bookId, onComplete) => {
-    spawnWorker("ingest.worker.js", { epubPath, bookId }, onComplete);
+export const ingestWorker = (epubPath, bookId, onComplete, onProgress) => {
+    spawnWorker(
+        "ingest.worker.js",
+        { epubPath, bookId },
+        onComplete,
+        onProgress,
+    );
 };

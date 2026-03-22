@@ -1,10 +1,17 @@
 import { useState } from "react";
-import { Box, Typography, IconButton, Tooltip } from "@mui/material";
+import {
+    Box,
+    Typography,
+    IconButton,
+    Tooltip,
+    LinearProgress,
+} from "@mui/material";
 import AutoStoriesIcon from "@mui/icons-material/AutoStories";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AddIcon from "@mui/icons-material/Add";
 
 import BookDetailModal from "./BookDetailModal";
+import { useSocket } from "../../context/SocketContext.jsx";
 
 const DefaultCover = ({ title }) => (
     <Box
@@ -67,10 +74,30 @@ const StatusChip = ({ ready, label }) => (
     </Box>
 );
 
+const STAGE_LABELS = {
+    parsing: "Parsing...",
+    chunking: "Chunking...",
+    embedding: "Embedding",
+    upserting: "Storing...",
+    complete: "AI Ready!",
+    error: "Failed",
+};
+
 export default function BookCard({ book, onDelete, onAdd }) {
     const [imgError, setImgError] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
     const hasCover = book.cover_asset_key && !imgError;
+
+    const { ingestMap } = useSocket();
+    const ingestProgress = ingestMap[book._id] || null;
+    // Only show progress if it's for THIS book and not done yet
+    const isThisBook = !!ingestProgress;
+    const isActive =
+        isThisBook &&
+        ingestProgress.stage !== "complete" &&
+        ingestProgress.stage !== "error";
+    const justFinished = isThisBook && ingestProgress.stage === "complete";
+    const failed = isThisBook && ingestProgress.stage === "error";
 
     return (
         <>
@@ -118,20 +145,49 @@ export default function BookCard({ book, onDelete, onAdd }) {
                 <Box sx={styles.info}>
                     <Typography sx={styles.title}>{book.title}</Typography>
                     <Typography sx={styles.author}>{book.author}</Typography>
-                    <Box sx={styles.statusRow}>
-                        <StatusChip
-                            ready={book.embedding_ready}
-                            label={
-                                book.embedding_ready
-                                    ? "AI Ready"
-                                    : "Indexing..."
-                            }
-                        />
-                        <StatusChip
-                            ready={book.tts_ready}
-                            label={book.tts_ready ? "TTS Ready" : "No TTS"}
-                        />
-                    </Box>
+
+                    {/* Ingest progress bar */}
+                    {isActive && (
+                        <Box sx={styles.progressContainer}>
+                            <Box sx={styles.progressHeader}>
+                                <Typography sx={styles.progressLabel}>
+                                    {STAGE_LABELS[ingestProgress.stage]}
+                                </Typography>
+                                <Typography sx={styles.progressPercent}>
+                                    {ingestProgress.percent}%
+                                </Typography>
+                            </Box>
+                            <LinearProgress
+                                variant={
+                                    ingestProgress.stage === "parsing"
+                                        ? "indeterminate"
+                                        : "determinate"
+                                }
+                                value={ingestProgress.percent}
+                                sx={styles.progressBar}
+                            />
+                        </Box>
+                    )}
+
+                    {/* Normal status chips (when not actively ingesting) */}
+                    {!isActive && (
+                        <Box sx={styles.statusRow}>
+                            <StatusChip
+                                ready={book.embedding_ready || justFinished}
+                                label={
+                                    failed
+                                        ? "Index Failed"
+                                        : book.embedding_ready || justFinished
+                                          ? "AI Ready"
+                                          : "Indexing..."
+                                }
+                            />
+                            <StatusChip
+                                ready={book.tts_ready}
+                                label={book.tts_ready ? "TTS Ready" : "No TTS"}
+                            />
+                        </Box>
+                    )}
                 </Box>
             </Box>
             <BookDetailModal
@@ -253,5 +309,37 @@ const styles = {
         display: "flex",
         alignItems: "center",
         gap: 2,
+    },
+    progressContainer: {
+        mt: "auto",
+        pt: 1.5,
+    },
+    progressHeader: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        mb: 0.5,
+    },
+    progressLabel: {
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: "0.55rem",
+        color: "#00e0ff",
+        letterSpacing: "0.05em",
+        textTransform: "uppercase",
+    },
+    progressPercent: {
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: "0.55rem",
+        color: "#00e0ff",
+        letterSpacing: "0.05em",
+    },
+    progressBar: {
+        height: 3,
+        borderRadius: 2,
+        background: "rgba(255,255,255,0.04)",
+        "& .MuiLinearProgress-bar": {
+            background: "linear-gradient(90deg, #00e0ff, #7b2fff)",
+            borderRadius: 2,
+        },
     },
 };

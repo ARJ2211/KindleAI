@@ -49,6 +49,7 @@ export default function BookDetailModal({
 }) {
     const [imgError, setImgError] = useState(false);
     const [firstUploadedByEmail, setFirstUploadedByEmail] = useState("");
+    const [inMyBooks, setInMyBooks] = useState(false);
 
     useEffect(() => {
         if (!book || !open) return;
@@ -66,7 +67,19 @@ export default function BookDetailModal({
             }
         };
 
+        const isBookInMyBooks = async () => {
+            try {
+                const res = await api.get(`/library/${book._id}`);
+                if (res) setInMyBooks(true);
+            } catch (err) {
+                // This is okay for now
+                // TODO: Fix this?
+                console.error("Failed to fetch user library: ", err.message);
+            }
+        };
+
         getEmailByUid();
+        isBookInMyBooks();
     }, [book, open]);
 
     if (!book) return null;
@@ -187,9 +200,11 @@ export default function BookDetailModal({
                             <Button
                                 startIcon={<AddIcon />}
                                 onClick={() => onAdd(book)}
-                                sx={styles.addBtn}
+                                sx={!inMyBooks ? styles.addBtn : styles.rmvBtn}
                             >
-                                Add to My Books
+                                {!inMyBooks
+                                    ? "Add to My Books"
+                                    : "Remove from My Books"}
                             </Button>
                             <Button
                                 startIcon={<DeleteOutlineIcon />}
@@ -325,6 +340,8 @@ const styles = {
         fontSize: "0.8rem",
         color: "#52525b",
         lineHeight: 1.6,
+        maxHeight: "12.8em",
+        overflowY: "auto",
     },
     uploadedBy: {
         fontFamily: "'JetBrains Mono', monospace",
@@ -351,6 +368,22 @@ const styles = {
         "&:hover": {
             boxShadow:
                 "0 0 30px rgba(0,224,255,0.2), 0 0 60px rgba(123,47,255,0.1)",
+        },
+    },
+    rmvBtn: {
+        fontFamily: "'Syne', sans-serif",
+        fontWeight: 600,
+        fontSize: "0.75rem",
+        textTransform: "uppercase",
+        letterSpacing: "0.1em",
+        color: "#dfc1c1",
+        background: "linear-gradient(135deg, #e26e4b, #f20f07)",
+        border: "1px solid rgba(255, 50, 50, 0.2)",
+        borderRadius: "8px",
+        px: 3,
+        "&:hover": {
+            boxShadow:
+                "0 0 30px rgba(194, 50, 50, 0.2), 0 0 60px rgba(205, 28, 28, 0.1)",
         },
     },
     deleteBtn: {
