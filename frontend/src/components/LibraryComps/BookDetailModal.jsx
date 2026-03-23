@@ -74,7 +74,7 @@ export default function BookDetailModal({
             } catch (err) {
                 // This is okay for now
                 // TODO: Fix this?
-                console.error("Failed to fetch user library: ", err.message);
+                console.error("Book not in library", err.message);
             }
         };
 

@@ -1,26 +1,68 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { Box, Typography, IconButton } from "@mui/material";
+
+import { ReactReader } from "react-reader";
+import api from "../api/axios.js";
+
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AutoStoriesIcon from "@mui/icons-material/AutoStories";
+import { useEffect, useState } from "react";
 
 export default function ReaderPage() {
     const { bookId } = useParams();
+
+    const [error, setError] = useState(null);
+    const [location, setLocation] = useState("");
+    const [pageChange, setPageChange] = useState(0);
     const navigate = useNavigate();
+
+    useEffect(() => {
+        const getBookDetails = async () => {
+            try {
+                const res = await api.get(`/book/${bookId}`);
+                const epub_asset_key = res.data.epub_asset_key.split("/");
+                setLocation(
+                    `http://localhost:3000/epub/${epub_asset_key.at(-1)}`,
+                );
+                console.log(
+                    `http://localhost:3000/epub/${epub_asset_key.at(-1)}`,
+                );
+            } catch (e) {
+                setError("Failed to fetch book");
+            }
+        };
+
+        getBookDetails();
+    }, [bookId]);
+
+    const locationChanged = (epubcifi) => {
+        console.log("Location changed to:", epubcifi);
+        setPageChange(epubcifi);
+    };
 
     return (
         <Box sx={styles.page}>
             <Box sx={styles.topBar}>
-                <IconButton onClick={() => navigate("/home?tab=My+Books")} sx={styles.backBtn}>
+                <IconButton
+                    onClick={() => navigate("/home?tab=My+Books")}
+                    sx={styles.backBtn}
+                >
                     <ArrowBackIcon />
                 </IconButton>
             </Box>
 
-            <Box sx={styles.center}>
-                <AutoStoriesIcon sx={{ fontSize: 64, color: "rgba(0,224,255,0.15)" }} />
-                <Typography sx={styles.heading}>EPUB Reader</Typography>
-                <Typography sx={styles.sub}>Coming soon</Typography>
-                <Typography sx={styles.bookId}>Book ID: {bookId}</Typography>
-            </Box>
+            <div style={{ position: "relative", height: "90vh" }}>
+                <ReactReader
+                    url={location}
+                    location={pageChange}
+                    locationChanged={locationChanged}
+                    epubOptions={{
+                        allowPopups: true,
+                        allowScriptedContent: true,
+                        openAs: "epub",
+                    }}
+                />
+            </div>
         </Box>
     );
 }

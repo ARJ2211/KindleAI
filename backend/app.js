@@ -4,6 +4,7 @@ import cors from "cors";
 
 import { createServer } from "http";
 
+import { verifyToken } from "./middleware/auth.js";
 import configRoutes from "./routes/index.js";
 import { logger } from "./middleware/logger.js";
 import { initSocket } from "./socket/index.js";
@@ -26,6 +27,11 @@ process.on("unhandledRejection", (err) => {
 // ================ EXPRESS ================
 app.use(logger);
 app.use(cors());
+app.use(
+    "/epub",
+    // verifyToken,
+    express.static("uploads"),
+); // Keep token verification ?
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
