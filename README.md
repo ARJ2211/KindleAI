@@ -8,4 +8,7 @@ use the following commands after adding a package
 - docker compose up backend --build
 
 Speech to text docs
-[Horrible but it works :p](https://codesandbox.io/p/sandbox/text-to-speech-demo-umlkzv)
+- [Horrible but it works :p](https://codesandbox.io/p/sandbox/text-to-speech-demo-umlkzv)
+
+React Reader
+- [git repo] (https://github.com/gerhardsletten/react-reader)
