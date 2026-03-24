@@ -6,6 +6,8 @@ import api from "../api/axios.js";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useEffect, useState, useRef, useCallback } from "react";
 
+import PageNavButtons from "../components/ReaderComps/PageNavButtons.jsx";
+import TtsControls from "../components/ReaderComps/TtsControls.jsx";
 import ChapterList from "../components/ReaderComps/ChapterList.jsx";
 import LlmChat from "../components/ReaderComps/LlmChat.jsx";
 
@@ -17,16 +19,8 @@ const readerStyles = {
     tocArea: { display: "none" },
     tocButton: { display: "none" },
     tocButtonExpanded: { display: "none" },
-    prev: {
-        color: "rgba(0, 224, 255, 0.25)",
-        transition: "color 0.2s",
-        ":hover": { color: "#00e0ff" },
-    },
-    next: {
-        color: "rgba(0, 224, 255, 0.25)",
-        transition: "color 0.2s",
-        ":hover": { color: "#00e0ff" },
-    },
+    prev: { display: "none" },
+    next: { display: "none" },
 };
 
 const DARK_THEME = {
@@ -51,6 +45,7 @@ export default function ReaderPage() {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
     const [currentCfi, setCurrentCfi] = useState(null);
+    const [bookInfo, setBookInfo] = useState(null);
     const [toc, setToc] = useState([]);
 
     const renditionRef = useRef(null);
@@ -60,7 +55,9 @@ export default function ReaderPage() {
             try {
                 setLoading(true);
                 const bookRes = await api.get(`/book/${bookId}`);
-                const epubFile = bookRes.data.epub_asset_key.split("/").at(-1);
+                const book = bookRes.data;
+                setBookInfo(book);
+                const epubFile = book.epub_asset_key.split("/").at(-1);
                 setEpubUrl(`http://localhost:3000/epub/${epubFile}`);
             } catch {
                 setError("Failed to load book");
@@ -133,11 +130,22 @@ export default function ReaderPage() {
                 >
                     <ArrowBackIcon fontSize="small" />
                 </IconButton>
+                {bookInfo && (
+                    <Box sx={sx.bookMeta}>
+                        <Typography sx={sx.bookTitle} noWrap>
+                            {bookInfo.title}
+                        </Typography>
+                        <Typography sx={sx.bookAuthor} noWrap>
+                            {bookInfo.author}
+                        </Typography>
+                    </Box>
+                )}
             </Box>
 
             <Box sx={sx.contentArea}>
                 <ChapterList toc={toc} onSelect={goToChapter} />
                 <Box sx={sx.readerWrapper}>
+                    <PageNavButtons renditionRef={renditionRef} />
                     {epubUrl && (
                         <ReactReader
                             url={epubUrl}
@@ -154,7 +162,10 @@ export default function ReaderPage() {
                         />
                     )}
                 </Box>
-                <LlmChat />
+                <Box sx={sx.rightPanel}>
+                    <TtsControls renditionRef={renditionRef} />
+                    <LlmChat />
+                </Box>
             </Box>
         </Box>
     );
@@ -204,5 +215,62 @@ const sx = {
         position: "relative",
         height: "100%",
         overflow: "hidden",
+    },
+    navBtn: {
+        position: "absolute",
+        left: 12,
+        top: "50%",
+        transform: "translateY(-50%)",
+        zIndex: 5,
+        color: "#00e0ff",
+        fontSize: "1.6rem",
+        width: 44,
+        height: 44,
+        fontFamily: "serif",
+        background: "rgba(0, 224, 255, 0.06)",
+        border: "1px solid rgba(0, 224, 255, 0.12)",
+        borderRadius: "12px",
+        backdropFilter: "blur(8px)",
+        transition: "all 0.25s ease",
+        "&:hover": {
+            color: "#fff",
+            background: "rgba(0, 224, 255, 0.15)",
+            borderColor: "rgba(0, 224, 255, 0.35)",
+            boxShadow: "0 0 20px rgba(0, 224, 255, 0.15)",
+            transform: "translateY(-50%) scale(1.08)",
+        },
+    },
+    rightPanel: {
+        width: 360,
+        flexShrink: 0,
+        display: "flex",
+        flexDirection: "column",
+        background: "#0a0a12",
+        borderLeft: "1px solid rgba(0, 224, 255, 0.08)",
+    },
+    topBar: {
+        display: "flex",
+        alignItems: "center",
+        gap: 2,
+        px: 2,
+        py: 1,
+        borderBottom: "1px solid rgba(0, 224, 255, 0.06)",
+        zIndex: 10,
+    },
+    bookMeta: {
+        minWidth: 0,
+    },
+    bookTitle: {
+        fontFamily: "'Syne', sans-serif",
+        fontWeight: 700,
+        fontSize: "0.9rem",
+        color: "#e4e4e8",
+        lineHeight: 1.2,
+    },
+    bookAuthor: {
+        fontFamily: "'DM Sans', sans-serif",
+        fontSize: "0.7rem",
+        color: "#52525b",
+        mt: 0.25,
     },
 };
