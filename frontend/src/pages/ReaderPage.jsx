@@ -3,27 +3,20 @@ import { Box, Typography, IconButton, CircularProgress } from "@mui/material";
 import { ReactReader } from "react-reader";
 import api from "../api/axios.js";
 
-import LlmChat from "../components/ReaderComps/LlmChat.jsx";
-
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useEffect, useState, useRef, useCallback } from "react";
 
-// Dark overrides for the react-reader shell
+import ChapterList from "../components/ReaderComps/ChapterList.jsx";
+import LlmChat from "../components/ReaderComps/LlmChat.jsx";
+
 const readerStyles = {
     container: { overflow: "hidden", height: "100%" },
     readerArea: { backgroundColor: "#0a0a0f", transition: "none" },
     reader: { position: "absolute", top: 10, left: 50, bottom: 10, right: 50 },
     titleArea: { display: "none" },
-    tocArea: {
-        background: "#0c0c14",
-    },
-    tocButtonExpanded: {
-        background: "rgba(0, 224, 255, 0.12)",
-        color: "#00e0ff",
-    },
-    tocButton: {
-        color: "#52525b",
-    },
+    tocArea: { display: "none" },
+    tocButton: { display: "none" },
+    tocButtonExpanded: { display: "none" },
     prev: {
         color: "rgba(0, 224, 255, 0.25)",
         transition: "color 0.2s",
@@ -36,7 +29,6 @@ const readerStyles = {
     },
 };
 
-// Epub.js dark content theme
 const DARK_THEME = {
     body: {
         background: "#0a0a0f !important",
@@ -59,10 +51,10 @@ export default function ReaderPage() {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
     const [currentCfi, setCurrentCfi] = useState(null);
+    const [toc, setToc] = useState([]);
 
     const renditionRef = useRef(null);
 
-    // Fetch book details
     useEffect(() => {
         const init = async () => {
             try {
@@ -79,7 +71,6 @@ export default function ReaderPage() {
         init();
     }, [bookId]);
 
-    // Apply dark theme
     const handleRendition = useCallback((rendition) => {
         renditionRef.current = rendition;
         rendition.themes.register("dark", DARK_THEME);
@@ -95,11 +86,20 @@ export default function ReaderPage() {
         });
     }, []);
 
-    // Location changed
     const handleLocationChanged = useCallback((epubcifi) => {
         setCurrentCfi(epubcifi);
         // TODO: save reading progress to backend
         console.log("[reader] page changed:", epubcifi);
+    }, []);
+
+    const handleTocChanged = useCallback((newToc) => {
+        setToc(newToc);
+    }, []);
+
+    const goToChapter = useCallback((href) => {
+        if (renditionRef.current) {
+            renditionRef.current.display(href);
+        }
     }, []);
 
     if (loading) {
@@ -136,12 +136,14 @@ export default function ReaderPage() {
             </Box>
 
             <Box sx={sx.contentArea}>
+                <ChapterList toc={toc} onSelect={goToChapter} />
                 <Box sx={sx.readerWrapper}>
                     {epubUrl && (
                         <ReactReader
                             url={epubUrl}
                             location={currentCfi || undefined}
                             locationChanged={handleLocationChanged}
+                            tocChanged={handleTocChanged}
                             getRendition={handleRendition}
                             readerStyles={readerStyles}
                             epubOptions={{
@@ -175,18 +177,6 @@ const sx = {
         justifyContent: "center",
         gap: 2,
     },
-    contentArea: {
-        flex: 1,
-        display: "flex",
-        overflow: "hidden",
-        position: "relative",
-    },
-    readerWrapper: {
-        flex: 1,
-        position: "relative",
-        height: "100%",
-        overflow: "hidden",
-    },
     subText: {
         fontFamily: "'DM Sans', sans-serif",
         fontSize: "0.85rem",
@@ -204,9 +194,15 @@ const sx = {
             borderColor: "rgba(0, 224, 255, 0.3)",
         },
     },
+    contentArea: {
+        flex: 1,
+        display: "flex",
+        overflow: "hidden",
+    },
     readerWrapper: {
         flex: 1,
         position: "relative",
+        height: "100%",
         overflow: "hidden",
     },
 };
