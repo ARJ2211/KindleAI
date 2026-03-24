@@ -3,6 +3,8 @@ import { Box, Typography, IconButton, CircularProgress } from "@mui/material";
 import { ReactReader } from "react-reader";
 import api from "../api/axios.js";
 
+import LlmChat from "../components/ReaderComps/LlmChat.jsx";
+
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useEffect, useState, useRef, useCallback } from "react";
 
@@ -12,16 +14,25 @@ const readerStyles = {
     readerArea: { backgroundColor: "#0a0a0f", transition: "none" },
     reader: { position: "absolute", top: 10, left: 50, bottom: 10, right: 50 },
     titleArea: { display: "none" },
-    tocArea: { display: "none" },
-    tocButton: { display: "none" },
-    tocButtonExpanded: { display: "none" },
+    tocArea: {
+        background: "#0c0c14",
+    },
+    tocButtonExpanded: {
+        background: "rgba(0, 224, 255, 0.12)",
+        color: "#00e0ff",
+    },
+    tocButton: {
+        color: "#52525b",
+    },
     prev: {
-        color: "rgba(0, 224, 255, 0.4)",
-        ":hover": { color: "rgba(0, 224, 255, 0.8)" },
+        color: "rgba(0, 224, 255, 0.25)",
+        transition: "color 0.2s",
+        ":hover": { color: "#00e0ff" },
     },
     next: {
-        color: "rgba(0, 224, 255, 0.4)",
-        ":hover": { color: "rgba(0, 224, 255, 0.8)" },
+        color: "rgba(0, 224, 255, 0.25)",
+        transition: "color 0.2s",
+        ":hover": { color: "#00e0ff" },
     },
 };
 
@@ -124,21 +135,24 @@ export default function ReaderPage() {
                 </IconButton>
             </Box>
 
-            <Box sx={sx.readerWrapper}>
-                {epubUrl && (
-                    <ReactReader
-                        url={epubUrl}
-                        location={currentCfi || undefined}
-                        locationChanged={handleLocationChanged}
-                        getRendition={handleRendition}
-                        readerStyles={readerStyles}
-                        epubOptions={{
-                            allowPopups: true,
-                            allowScriptedContent: true,
-                            openAs: "epub",
-                        }}
-                    />
-                )}
+            <Box sx={sx.contentArea}>
+                <Box sx={sx.readerWrapper}>
+                    {epubUrl && (
+                        <ReactReader
+                            url={epubUrl}
+                            location={currentCfi || undefined}
+                            locationChanged={handleLocationChanged}
+                            getRendition={handleRendition}
+                            readerStyles={readerStyles}
+                            epubOptions={{
+                                allowPopups: true,
+                                allowScriptedContent: true,
+                                openAs: "epub",
+                            }}
+                        />
+                    )}
+                </Box>
+                <LlmChat />
             </Box>
         </Box>
     );
@@ -160,6 +174,18 @@ const sx = {
         alignItems: "center",
         justifyContent: "center",
         gap: 2,
+    },
+    contentArea: {
+        flex: 1,
+        display: "flex",
+        overflow: "hidden",
+        position: "relative",
+    },
+    readerWrapper: {
+        flex: 1,
+        position: "relative",
+        height: "100%",
+        overflow: "hidden",
     },
     subText: {
         fontFamily: "'DM Sans', sans-serif",
