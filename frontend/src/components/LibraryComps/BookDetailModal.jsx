@@ -46,6 +46,7 @@ export default function BookDetailModal({
     onClose,
     onAdd,
     onDelete,
+    onAlert,
 }) {
     const [imgError, setImgError] = useState(false);
     const [firstUploadedByEmail, setFirstUploadedByEmail] = useState("");
@@ -83,6 +84,31 @@ export default function BookDetailModal({
     }, [book, open]);
 
     if (!book) return null;
+
+    const handleLibraryToggle = async () => {
+        try {
+            if (!inMyBooks) {
+                await onAdd(book);
+                setInMyBooks(true);
+                onAlert?.({
+                    message: `"${book.title}" added to My Books`,
+                    severity: "success",
+                });
+            } else {
+                await api.delete(`/library/${book._id}`);
+                setInMyBooks(false);
+                onAlert?.({
+                    message: `"${book.title}" removed from My Books`,
+                    severity: "success",
+                });
+            }
+        } catch (err) {
+            onAlert?.({
+                message: err.response?.data?.msg || "Failed to update library",
+                severity: "error",
+            });
+        }
+    };
 
     const hasCover = book.cover_asset_key && !imgError;
     const googleBooks = book.google_books;
@@ -199,7 +225,7 @@ export default function BookDetailModal({
                         <Box sx={styles.actions}>
                             <Button
                                 startIcon={<AddIcon />}
-                                onClick={() => onAdd(book)}
+                                onClick={handleLibraryToggle}
                                 sx={!inMyBooks ? styles.addBtn : styles.rmvBtn}
                             >
                                 {!inMyBooks

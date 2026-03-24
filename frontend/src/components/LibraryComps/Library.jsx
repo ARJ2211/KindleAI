@@ -130,6 +130,7 @@ export default function Library({ onUpload, uploading, onAlert }) {
                             book={book}
                             onDelete={handleDelete}
                             onAdd={handleAdd}
+                            onAlert={onAlert}
                         />
                     ))}
                 </Box>
