@@ -51,13 +51,27 @@ export default function BookDetailModal({
     const [imgError, setImgError] = useState(false);
     const [firstUploadedByEmail, setFirstUploadedByEmail] = useState("");
     const [inMyBooks, setInMyBooks] = useState(false);
+    const [freshBook, setFreshBook] = useState(null);
 
     useEffect(() => {
         if (!book || !open) return;
 
-        if (!book) return;
-        const uid = book.first_uploaded_by;
+        // Reset on each open
+        setFreshBook(null);
+        setInMyBooks(false);
+
+        const uid = displayBook.first_uploaded_by;
         if (!uid) return;
+
+        const fetchFreshBook = async () => {
+            try {
+                const res = await api.get(`/book/${displayBook._id}`);
+                setFreshBook(res.data);
+                console.log("[modal] Fresh book data fetched:", res.data);
+            } catch (err) {
+                console.error("Failed to fetch fresh book data:", err.message);
+            }
+        };
 
         const getEmailByUid = async () => {
             try {
@@ -70,15 +84,14 @@ export default function BookDetailModal({
 
         const isBookInMyBooks = async () => {
             try {
-                const res = await api.get(`/library/${book._id}`);
+                const res = await api.get(`/library/${displayBook._id}`);
                 if (res) setInMyBooks(true);
             } catch (err) {
-                // This is okay for now
-                // TODO: Fix this?
                 console.error("Book not in library", err.message);
             }
         };
 
+        fetchFreshBook();
         getEmailByUid();
         isBookInMyBooks();
     }, [book, open]);
@@ -91,14 +104,14 @@ export default function BookDetailModal({
                 await onAdd(book);
                 setInMyBooks(true);
                 onAlert?.({
-                    message: `"${book.title}" added to My Books`,
+                    message: `"${displayBook.title}" added to My Books`,
                     severity: "success",
                 });
             } else {
-                await api.delete(`/library/${book._id}`);
+                await api.delete(`/library/${displayBook._id}`);
                 setInMyBooks(false);
                 onAlert?.({
-                    message: `"${book.title}" removed from My Books`,
+                    message: `"${displayBook.title}" removed from My Books`,
                     severity: "success",
                 });
             }
@@ -110,8 +123,9 @@ export default function BookDetailModal({
         }
     };
 
-    const hasCover = book.cover_asset_key && !imgError;
-    const googleBooks = book.google_books;
+    const displayBook = freshBook || book;
+    const hasCover = displayBook.cover_asset_key && !imgError;
+    const googleBooks = displayBook.google_books;
 
     return (
         <Modal open={open} onClose={onClose}>
@@ -126,8 +140,8 @@ export default function BookDetailModal({
                     <Box sx={styles.coverWrap}>
                         {hasCover ? (
                             <img
-                                src={book.cover_asset_key}
-                                alt={book.title}
+                                src={displayBook.cover_asset_key}
+                                alt={displayBook.title}
                                 style={styles.coverImg}
                                 onError={() => setImgError(true)}
                             />
@@ -144,7 +158,9 @@ export default function BookDetailModal({
                     </Box>
 
                     <Box sx={styles.details}>
-                        <Typography sx={styles.title}>{book.title}</Typography>
+                        <Typography sx={styles.title}>
+                            {displayBook.title}
+                        </Typography>
 
                         {googleBooks?.subtitle && (
                             <Typography sx={styles.subtitle}>
@@ -153,7 +169,7 @@ export default function BookDetailModal({
                         )}
 
                         <Typography sx={styles.author}>
-                            {book.author}
+                            {displayBook.author}
                         </Typography>
 
                         <Box sx={styles.metaGrid}>
@@ -198,27 +214,28 @@ export default function BookDetailModal({
 
                         <Box sx={styles.statusRow}>
                             <StatusChip
-                                ready={book.embedding_ready}
+                                ready={displayBook.embedding_ready}
                                 readyLabel="AI Ready"
                                 notReadyLabel="Indexing..."
                             />
                             <StatusChip
-                                ready={book.tts_ready}
+                                ready={displayBook.tts_ready}
                                 readyLabel="TTS Ready"
                                 notReadyLabel="No TTS"
                             />
                         </Box>
 
-                        {book.description && (
+                        {displayBook.description && (
                             <Typography sx={styles.description}>
-                                {book.description}
+                                {displayBook.description}
                             </Typography>
                         )}
 
                         <Typography sx={styles.uploadedBy}>
                             Uploaded by{" "}
                             <span style={{ color: "#52525b" }}>
-                                {firstUploadedByEmail || book.first_uploaded_by}
+                                {firstUploadedByEmail ||
+                                    displayBook.first_uploaded_by}
                             </span>
                         </Typography>
 
