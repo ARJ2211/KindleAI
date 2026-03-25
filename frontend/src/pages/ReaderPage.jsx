@@ -7,6 +7,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useEffect, useState, useRef, useCallback } from "react";
 
 import PageNavButtons from "../components/ReaderComps/PageNavButtons.jsx";
+import ReaderLoader from "../components/ReaderComps/ReaderLoader.jsx";
 import TtsControls from "../components/ReaderComps/TtsControls.jsx";
 import ChapterList from "../components/ReaderComps/ChapterList.jsx";
 import LlmChat from "../components/ReaderComps/LlmChat.jsx";
@@ -48,10 +49,14 @@ export default function ReaderPage() {
     const [bookInfo, setBookInfo] = useState(null);
     const [toc, setToc] = useState([]);
     const [savedCfi, setSavedCfi] = useState(null);
+    const [readerReady, setReaderReady] = useState(false);
 
     const saveTimerRef = useRef(null);
     const renditionRef = useRef(null);
     const locationsReadyRef = useRef(false);
+    const finishedBookRef = useRef(false);
+    // Queued CFI to save once locations are ready
+    const pendingSaveRef = useRef(null);
 
     useEffect(() => {
         const init = async () => {
@@ -66,7 +71,12 @@ export default function ReaderPage() {
                 // Fetch saved reading position
                 try {
                     const libRes = await api.get(`/library/${bookId}`);
-                    if (libRes.data?.current_chapter) {
+                    if (libRes.data?.progress_percent === 100) {
+                        finishedBookRef.current = true;
+                        console.log(
+                            "[reader] Book was finished, will jump to end",
+                        );
+                    } else if (libRes.data?.current_chapter) {
                         setSavedCfi(libRes.data.current_chapter);
                         console.log(
                             "[reader] Resuming from:",
@@ -78,6 +88,8 @@ export default function ReaderPage() {
                         "[reader] Book not in user library, starting from beginning",
                     );
                 }
+
+                setReaderReady(true);
             } catch {
                 setError("Failed to load book");
             } finally {
@@ -90,27 +102,71 @@ export default function ReaderPage() {
         };
     }, [bookId]);
 
-    const handleRendition = useCallback((rendition) => {
-        renditionRef.current = rendition;
-        rendition.themes.register("dark", DARK_THEME);
-        rendition.themes.select("dark");
-        rendition.themes.fontSize("105%");
+    // Calculates percentage and saves progress to backend
+    const saveProgressFromCurrentLocation = useCallback(() => {
+        if (!locationsReadyRef.current || !renditionRef.current) return;
 
-        rendition.hooks.content.register((contents) => {
-            const doc = contents.document;
-            if (doc?.body) {
-                doc.body.style.background = "#0a0a0f";
-                doc.body.style.color = "#c8c8d0";
-            }
-        });
+        const loc = renditionRef.current.currentLocation();
+        const atEnd = loc?.atEnd === true;
+        const cfi = atEnd ? loc?.end?.cfi || loc?.start?.cfi : loc?.start?.cfi;
 
-        rendition.book.ready
-            .then(() => rendition.book.locations.generate(1600))
-            .then(() => {
-                locationsReadyRef.current = true;
-                console.log("[reader] Locations generated");
+        if (!cfi) return;
+
+        const pct = renditionRef.current.book.locations.percentageFromCfi(cfi);
+        const percent = atEnd
+            ? 100
+            : pct != null && !isNaN(pct)
+              ? Math.round(pct * 10000) / 100
+              : 0;
+
+        console.log("[reader] Page changed:", cfi, `(${percent}%)`);
+
+        api.patch(`/library/${bookId}/progress`, {
+            current_chapter: cfi,
+            progress_percent: percent,
+        })
+            .then(() => console.log("[reader] Progress saved:", percent + "%"))
+            .catch((err) => console.warn("[reader] Save failed:", err.message));
+    }, [bookId]);
+
+    const handleRendition = useCallback(
+        (rendition) => {
+            renditionRef.current = rendition;
+            rendition.themes.register("dark", DARK_THEME);
+            rendition.themes.select("dark");
+            rendition.themes.fontSize("105%");
+
+            rendition.hooks.content.register((contents) => {
+                const doc = contents.document;
+                if (doc?.body) {
+                    doc.body.style.background = "#0a0a0f";
+                    doc.body.style.color = "#c8c8d0";
+                }
             });
-    }, []);
+
+            rendition.book.ready
+                .then(() => rendition.book.locations.generate(1600))
+                .then(() => {
+                    locationsReadyRef.current = true;
+                    console.log("[reader] Locations generated");
+
+                    // If book was finished, jump to the last chapter
+                    if (finishedBookRef.current) {
+                        const spine = rendition.book.spine;
+                        const lastItem = spine.items[spine.items.length - 1];
+                        rendition.display(lastItem.href);
+                        console.log("[reader] Jumped to end of book");
+                    }
+
+                    // If a page change happened before locations were ready, save it now
+                    if (pendingSaveRef.current) {
+                        pendingSaveRef.current = null;
+                        saveProgressFromCurrentLocation();
+                    }
+                });
+        },
+        [saveProgressFromCurrentLocation],
+    );
 
     const handleLocationChanged = useCallback(
         (epubcifi) => {
@@ -119,39 +175,20 @@ export default function ReaderPage() {
             if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
             saveTimerRef.current = setTimeout(() => {
                 if (!locationsReadyRef.current) {
+                    // Locations not ready yet, queue a save for when they are
                     console.log(
                         "[reader] Page changed:",
                         epubcifi,
-                        "(locations not ready)",
+                        "(queued, locations not ready)",
                     );
+                    pendingSaveRef.current = epubcifi;
                     return;
                 }
 
-                // Use currentLocation for accurate CFI after chapter jump settles
-                const loc = renditionRef.current?.currentLocation();
-                const cfi = loc?.start?.cfi || epubcifi;
-                const pct =
-                    renditionRef.current.book.locations.percentageFromCfi(cfi);
-                const percent =
-                    pct != null && !isNaN(pct)
-                        ? Math.round(pct * 10000) / 100
-                        : 0;
-
-                console.log("[reader] Page changed:", cfi, `(${percent}%)`);
-
-                api.patch(`/library/${bookId}/progress`, {
-                    current_chapter: cfi,
-                    progress_percent: percent,
-                })
-                    .then(() =>
-                        console.log("[reader] Progress saved:", percent + "%"),
-                    )
-                    .catch((err) =>
-                        console.warn("[reader] Save failed:", err.message),
-                    );
+                saveProgressFromCurrentLocation();
             }, 500);
         },
-        [bookId],
+        [saveProgressFromCurrentLocation],
     );
 
     const handleTocChanged = useCallback((newToc) => {
@@ -165,25 +202,11 @@ export default function ReaderPage() {
     }, []);
 
     if (loading) {
-        return (
-            <Box sx={sx.centered}>
-                <CircularProgress
-                    size={32}
-                    sx={{ color: "rgba(0, 224, 255, 0.6)" }}
-                />
-                <Typography sx={sx.subText}>Loading book…</Typography>
-            </Box>
-        );
+        return <ReaderLoader message="Fetching book details…" />;
     }
 
     if (error) {
-        return (
-            <Box sx={sx.centered}>
-                <Typography sx={{ ...sx.subText, color: "#ff6b6b" }}>
-                    {error}
-                </Typography>
-            </Box>
-        );
+        return <ReaderLoader message={error} />;
     }
 
     return (
@@ -211,7 +234,7 @@ export default function ReaderPage() {
                 <ChapterList toc={toc} onSelect={goToChapter} />
                 <Box sx={sx.readerWrapper}>
                     <PageNavButtons renditionRef={renditionRef} />
-                    {epubUrl && (
+                    {epubUrl && readerReady && (
                         <ReactReader
                             url={epubUrl}
                             location={currentCfi || savedCfi || undefined}
@@ -258,7 +281,6 @@ const sx = {
         fontSize: "0.85rem",
         color: "#52525b",
     },
-    topBar: { p: 1.5, zIndex: 10 },
     backBtn: {
         color: "#d4d4d8",
         border: "1px solid rgba(0, 224, 255, 0.1)",
@@ -280,30 +302,6 @@ const sx = {
         position: "relative",
         height: "100%",
         overflow: "hidden",
-    },
-    navBtn: {
-        position: "absolute",
-        left: 12,
-        top: "50%",
-        transform: "translateY(-50%)",
-        zIndex: 5,
-        color: "#00e0ff",
-        fontSize: "1.6rem",
-        width: 44,
-        height: 44,
-        fontFamily: "serif",
-        background: "rgba(0, 224, 255, 0.06)",
-        border: "1px solid rgba(0, 224, 255, 0.12)",
-        borderRadius: "12px",
-        backdropFilter: "blur(8px)",
-        transition: "all 0.25s ease",
-        "&:hover": {
-            color: "#fff",
-            background: "rgba(0, 224, 255, 0.15)",
-            borderColor: "rgba(0, 224, 255, 0.35)",
-            boxShadow: "0 0 20px rgba(0, 224, 255, 0.15)",
-            transform: "translateY(-50%) scale(1.08)",
-        },
     },
     rightPanel: {
         width: 360,
