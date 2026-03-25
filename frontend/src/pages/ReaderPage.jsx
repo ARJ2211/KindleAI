@@ -47,7 +47,9 @@ export default function ReaderPage() {
     const [currentCfi, setCurrentCfi] = useState(null);
     const [bookInfo, setBookInfo] = useState(null);
     const [toc, setToc] = useState([]);
+    const [savedCfi, setSavedCfi] = useState(null);
 
+    const saveTimerRef = useRef(null);
     const renditionRef = useRef(null);
 
     useEffect(() => {
@@ -59,6 +61,22 @@ export default function ReaderPage() {
                 setBookInfo(book);
                 const epubFile = book.epub_asset_key.split("/").at(-1);
                 setEpubUrl(`http://localhost:3000/epub/${epubFile}`);
+
+                // Fetch saved reading position
+                try {
+                    const libRes = await api.get(`/library/${bookId}`);
+                    if (libRes.data?.current_chapter) {
+                        setSavedCfi(libRes.data.current_chapter);
+                        console.log(
+                            "[reader] Resuming from:",
+                            libRes.data.current_chapter,
+                        );
+                    }
+                } catch {
+                    console.log(
+                        "[reader] Book not in user library, starting from beginning",
+                    );
+                }
             } catch {
                 setError("Failed to load book");
             } finally {
@@ -66,6 +84,9 @@ export default function ReaderPage() {
             }
         };
         init();
+        return () => {
+            if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+        };
     }, [bookId]);
 
     const handleRendition = useCallback((rendition) => {
@@ -81,13 +102,49 @@ export default function ReaderPage() {
                 doc.body.style.color = "#c8c8d0";
             }
         });
+
+        // Generate locations for progress percentage
+        rendition.book.ready
+            .then(() => rendition.book.locations.generate(1600))
+            .then(() => {
+                console.log("[reader] Locations generated");
+            });
     }, []);
 
-    const handleLocationChanged = useCallback((epubcifi) => {
-        setCurrentCfi(epubcifi);
-        // TODO: save reading progress to backend
-        console.log("[reader] page changed:", epubcifi);
-    }, []);
+    const handleLocationChanged = useCallback(
+        (epubcifi) => {
+            setCurrentCfi(epubcifi);
+
+            // Calculate progress if locations are ready
+            let percent = 0;
+            if (renditionRef.current?.book?.locations) {
+                const pct =
+                    renditionRef.current.book.locations.percentageFromCfi(
+                        epubcifi,
+                    );
+                if (pct != null && !isNaN(pct)) {
+                    percent = Math.round(pct * 10000) / 100;
+                }
+            }
+
+            console.log("[reader] Page changed:", epubcifi, `(${percent}%)`);
+
+            // Debounce save. 1.5s after last page turn
+            if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+            saveTimerRef.current = setTimeout(async () => {
+                try {
+                    await api.patch(`/library/${bookId}/progress`, {
+                        current_chapter: epubcifi,
+                        progress_percent: percent,
+                    });
+                    console.log("[reader] Progress saved:", percent + "%");
+                } catch (err) {
+                    console.warn("[reader] Save failed:", err.message);
+                }
+            }, 1500);
+        },
+        [bookId],
+    );
 
     const handleTocChanged = useCallback((newToc) => {
         setToc(newToc);
@@ -149,7 +206,7 @@ export default function ReaderPage() {
                     {epubUrl && (
                         <ReactReader
                             url={epubUrl}
-                            location={currentCfi || undefined}
+                            location={currentCfi || savedCfi || undefined}
                             locationChanged={handleLocationChanged}
                             tocChanged={handleTocChanged}
                             getRendition={handleRendition}

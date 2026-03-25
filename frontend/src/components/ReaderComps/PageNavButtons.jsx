@@ -7,9 +7,7 @@ export default function PageNavButtons({ renditionRef }) {
         console.log("[reader] Left click: Previous page", {
             cfi: loc?.start?.cfi || "unknown",
             href: loc?.start?.href || "unknown",
-            index: loc?.start?.index || "unknown",
         });
-        // TODO: save progress to backend
     };
 
     const handleNext = () => {
@@ -18,9 +16,7 @@ export default function PageNavButtons({ renditionRef }) {
         console.log("[reader] Right click: Next page", {
             cfi: loc?.start?.cfi || "unknown",
             href: loc?.start?.href || "unknown",
-            index: loc?.start?.index || "unknown",
         });
-        // TODO: save progress to backend
     };
 
     return (
