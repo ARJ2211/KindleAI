@@ -56,8 +56,7 @@ export default function ReaderPage() {
     const renditionRef = useRef(null);
     const locationsReadyRef = useRef(false);
     const finishedBookRef = useRef(false);
-    const hasSavedCfiRef = useRef(false);
-    const locationChangeCount = useRef(0);
+    const settledRef = useRef(false);
     // Queued CFI to save once locations are ready
     const pendingSaveRef = useRef(null);
 
@@ -76,13 +75,14 @@ export default function ReaderPage() {
                     const libRes = await api.get(`/library/${bookId}`);
                     if (libRes.data?.progress_percent === 100) {
                         finishedBookRef.current = true;
-                        hasSavedCfiRef.current = true;
+                        if (libRes.data?.current_chapter) {
+                            setSavedCfi(libRes.data.current_chapter);
+                        }
                         console.log(
-                            "[reader] Book was finished, will jump to end",
+                            "[reader] Book was finished, resuming at last position",
                         );
                     } else if (libRes.data?.current_chapter) {
                         setSavedCfi(libRes.data.current_chapter);
-                        hasSavedCfiRef.current = true;
                         console.log(
                             "[reader] Resuming from:",
                             libRes.data.current_chapter,
@@ -110,6 +110,7 @@ export default function ReaderPage() {
     // Calculates percentage and saves progress to backend
     const saveProgressFromCurrentLocation = useCallback(() => {
         if (!locationsReadyRef.current || !renditionRef.current) return;
+        if (!settledRef.current) return; // Don't save during initial load
 
         const loc = renditionRef.current.currentLocation();
         const atEnd = loc?.atEnd === true;
@@ -155,22 +156,14 @@ export default function ReaderPage() {
                     locationsReadyRef.current = true;
                     console.log("[reader] Locations generated");
 
-                    // If book was finished, jump to the last chapter
-                    if (finishedBookRef.current) {
-                        const spine = rendition.book.spine;
-                        const lastItem = spine.items[spine.items.length - 1];
-                        rendition.display(lastItem.href);
-                        console.log("[reader] Jumped to end of book");
-                    }
-
-                    // If a page change happened before locations were ready, save it now
-                    if (pendingSaveRef.current) {
-                        pendingSaveRef.current = null;
-                        saveProgressFromCurrentLocation();
-                    }
-
-                    // Small delay to let the final navigation settle, then show the reader
-                    setTimeout(() => setSettled(true), 300);
+                    // Wait for any resume navigation to settle before allowing saves
+                    setTimeout(() => {
+                        if (saveTimerRef.current)
+                            clearTimeout(saveTimerRef.current);
+                        setSettled(true);
+                        settledRef.current = true;
+                        console.log("[reader] Settled, saves enabled");
+                    }, 800);
                 });
         },
         [saveProgressFromCurrentLocation],
