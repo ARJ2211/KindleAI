@@ -50,11 +50,14 @@ export default function ReaderPage() {
     const [toc, setToc] = useState([]);
     const [savedCfi, setSavedCfi] = useState(null);
     const [readerReady, setReaderReady] = useState(false);
+    const [settled, setSettled] = useState(false);
 
     const saveTimerRef = useRef(null);
     const renditionRef = useRef(null);
     const locationsReadyRef = useRef(false);
     const finishedBookRef = useRef(false);
+    const hasSavedCfiRef = useRef(false);
+    const locationChangeCount = useRef(0);
     // Queued CFI to save once locations are ready
     const pendingSaveRef = useRef(null);
 
@@ -73,11 +76,13 @@ export default function ReaderPage() {
                     const libRes = await api.get(`/library/${bookId}`);
                     if (libRes.data?.progress_percent === 100) {
                         finishedBookRef.current = true;
+                        hasSavedCfiRef.current = true;
                         console.log(
                             "[reader] Book was finished, will jump to end",
                         );
                     } else if (libRes.data?.current_chapter) {
                         setSavedCfi(libRes.data.current_chapter);
+                        hasSavedCfiRef.current = true;
                         console.log(
                             "[reader] Resuming from:",
                             libRes.data.current_chapter,
@@ -163,6 +168,9 @@ export default function ReaderPage() {
                         pendingSaveRef.current = null;
                         saveProgressFromCurrentLocation();
                     }
+
+                    // Small delay to let the final navigation settle, then show the reader
+                    setTimeout(() => setSettled(true), 300);
                 });
         },
         [saveProgressFromCurrentLocation],
@@ -175,7 +183,6 @@ export default function ReaderPage() {
             if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
             saveTimerRef.current = setTimeout(() => {
                 if (!locationsReadyRef.current) {
-                    // Locations not ready yet, queue a save for when they are
                     console.log(
                         "[reader] Page changed:",
                         epubcifi,
@@ -249,6 +256,17 @@ export default function ReaderPage() {
                             }}
                         />
                     )}
+                    {!settled && (
+                        <Box sx={sx.readerOverlay}>
+                            <CircularProgress
+                                size={24}
+                                sx={{ color: "#00e0ff" }}
+                            />
+                            <Typography sx={sx.overlayText}>
+                                Loading pages…
+                            </Typography>
+                        </Box>
+                    )}
                 </Box>
                 <Box sx={sx.rightPanel}>
                     <TtsControls renditionRef={renditionRef} />
@@ -302,6 +320,22 @@ const sx = {
         position: "relative",
         height: "100%",
         overflow: "hidden",
+    },
+    readerOverlay: {
+        position: "absolute",
+        inset: 0,
+        zIndex: 10,
+        background: "#0a0a0f",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 1.5,
+    },
+    overlayText: {
+        color: "#52525b",
+        fontSize: "0.8rem",
+        fontFamily: "'DM Sans', sans-serif",
     },
     rightPanel: {
         width: 360,
