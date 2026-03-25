@@ -51,6 +51,7 @@ export default function ReaderPage() {
 
     const saveTimerRef = useRef(null);
     const renditionRef = useRef(null);
+    const locationsReadyRef = useRef(false);
 
     useEffect(() => {
         const init = async () => {
@@ -103,10 +104,10 @@ export default function ReaderPage() {
             }
         });
 
-        // Generate locations for progress percentage
         rendition.book.ready
             .then(() => rendition.book.locations.generate(1600))
             .then(() => {
+                locationsReadyRef.current = true;
                 console.log("[reader] Locations generated");
             });
     }, []);
@@ -115,33 +116,40 @@ export default function ReaderPage() {
         (epubcifi) => {
             setCurrentCfi(epubcifi);
 
-            // Calculate progress if locations are ready
-            let percent = 0;
-            if (renditionRef.current?.book?.locations) {
-                const pct =
-                    renditionRef.current.book.locations.percentageFromCfi(
-                        epubcifi,
-                    );
-                if (pct != null && !isNaN(pct)) {
-                    percent = Math.round(pct * 10000) / 100;
-                }
-            }
-
-            console.log("[reader] Page changed:", epubcifi, `(${percent}%)`);
-
-            // Debounce save. 1.5s after last page turn
             if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-            saveTimerRef.current = setTimeout(async () => {
-                try {
-                    await api.patch(`/library/${bookId}/progress`, {
-                        current_chapter: epubcifi,
-                        progress_percent: percent,
-                    });
-                    console.log("[reader] Progress saved:", percent + "%");
-                } catch (err) {
-                    console.warn("[reader] Save failed:", err.message);
+            saveTimerRef.current = setTimeout(() => {
+                if (!locationsReadyRef.current) {
+                    console.log(
+                        "[reader] Page changed:",
+                        epubcifi,
+                        "(locations not ready)",
+                    );
+                    return;
                 }
-            }, 1500);
+
+                // Use currentLocation for accurate CFI after chapter jump settles
+                const loc = renditionRef.current?.currentLocation();
+                const cfi = loc?.start?.cfi || epubcifi;
+                const pct =
+                    renditionRef.current.book.locations.percentageFromCfi(cfi);
+                const percent =
+                    pct != null && !isNaN(pct)
+                        ? Math.round(pct * 10000) / 100
+                        : 0;
+
+                console.log("[reader] Page changed:", cfi, `(${percent}%)`);
+
+                api.patch(`/library/${bookId}/progress`, {
+                    current_chapter: cfi,
+                    progress_percent: percent,
+                })
+                    .then(() =>
+                        console.log("[reader] Progress saved:", percent + "%"),
+                    )
+                    .catch((err) =>
+                        console.warn("[reader] Save failed:", err.message),
+                    );
+            }, 500);
         },
         [bookId],
     );
