@@ -1,24 +1,383 @@
-import { Box, Typography } from "@mui/material";
+import { useState, useRef, useEffect, useCallback } from "react";
+import {
+    Box,
+    Typography,
+    Select,
+    MenuItem,
+    Slider,
+    CircularProgress,
+} from "@mui/material";
 
-export default function TtsControls() {
+// Default voices - a curated subset so users aren't overwhelmed
+const DEFAULT_VOICES = [
+    {
+        name: "en-US-EmmaMultilingualNeural",
+        label: "Emma (US)",
+        gender: "Female",
+    },
+    {
+        name: "en-US-AndrewMultilingualNeural",
+        label: "Andrew (US)",
+        gender: "Male",
+    },
+    {
+        name: "en-US-AvaMultilingualNeural",
+        label: "Ava (US)",
+        gender: "Female",
+    },
+    {
+        name: "en-US-BrianMultilingualNeural",
+        label: "Brian (US)",
+        gender: "Male",
+    },
+    { name: "en-GB-SoniaNeural", label: "Sonia (UK)", gender: "Female" },
+    { name: "en-GB-RyanNeural", label: "Ryan (UK)", gender: "Male" },
+    { name: "en-AU-NatashaNeural", label: "Natasha (AU)", gender: "Female" },
+    { name: "en-IN-NeerjaNeural", label: "Neerja (IN)", gender: "Female" },
+];
+
+const SPEED_MARKS = [
+    { value: -50, label: "0.5×" },
+    { value: -25, label: "0.75×" },
+    { value: 0, label: "1×" },
+    { value: 25, label: "1.25×" },
+    { value: 50, label: "1.5×" },
+    { value: 100, label: "2×" },
+];
+
+/**
+ * Extracts ONLY the visible text from the current epub page.
+ *
+ * epub.js loads the full chapter into an iframe and paginates via CSS
+ * columns. We use rendition.currentLocation() to get the start/end
+ * CFI (Canonical Fragment Identifier) for the visible page, then
+ * convert those CFIs to DOM Ranges via epub.js's contents.range()
+ * method and extract the text between them.
+ */
+function getVisibleText(renditionRef) {
+    try {
+        const rendition = renditionRef?.current;
+        if (!rendition) return null;
+
+        // currentLocation() tells us exactly what CFI range is visible
+        const location = rendition.currentLocation();
+        if (!location?.start?.cfi || !location?.end?.cfi) return null;
+
+        const contents = rendition.getContents();
+        if (!contents || contents.length === 0) return null;
+
+        const content = contents[0];
+        const doc = content?.document;
+        if (!doc) return null;
+
+        // contents.range(cfi) converts a CFI to a DOM Range using epub.js internals
+        let startRange, endRange;
+        try {
+            startRange = content.range(location.start.cfi);
+            endRange = content.range(location.end.cfi);
+        } catch {
+            console.warn("[tts] CFI range conversion failed, using fallback");
+            return getFallbackText(doc);
+        }
+
+        if (!startRange || !endRange) {
+            return getFallbackText(doc);
+        }
+
+        // Build a single Range spanning the entire visible page
+        const pageRange = doc.createRange();
+        pageRange.setStart(startRange.startContainer, startRange.startOffset);
+        pageRange.setEnd(endRange.startContainer, endRange.startOffset);
+
+        const text = pageRange.toString().replace(/\s+/g, " ").trim();
+
+        // Safety cap
+        const MAX_CHARS = 5000;
+        const result =
+            text.length > MAX_CHARS ? text.slice(0, MAX_CHARS) : text;
+
+        return result.length > 0 ? result : getFallbackText(doc);
+    } catch (e) {
+        console.error("[tts] Failed to extract page text:", e.message);
+        return null;
+    }
+}
+
+/**
+ * Fallback: grab a limited amount of text from the body.
+ * Only used if CFI-based extraction fails entirely.
+ */
+function getFallbackText(doc) {
+    try {
+        const raw = doc.body?.innerText || "";
+        const cleaned = raw.replace(/\s+/g, " ").trim();
+        // Take only the first ~2000 chars as a rough page estimate
+        return cleaned.length > 0 ? cleaned.slice(0, 2000) : null;
+    } catch {
+        return null;
+    }
+}
+
+export default function TtsControls({ renditionRef }) {
+    const [status, setStatus] = useState("idle"); // idle | loading | playing | paused | error
+    const [voice, setVoice] = useState(DEFAULT_VOICES[0].name);
+    const [speed, setSpeed] = useState(0);
+    const [errorMsg, setErrorMsg] = useState("");
+
+    const audioRef = useRef(null);
+    const blobUrlRef = useRef(null);
+
+    // Cleanup blob URL on unmount
+    useEffect(() => {
+        return () => {
+            cleanupAudio();
+        };
+    }, []);
+
+    const cleanupAudio = useCallback(() => {
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.removeEventListener("ended", handleEnded);
+            audioRef.current = null;
+        }
+        if (blobUrlRef.current) {
+            URL.revokeObjectURL(blobUrlRef.current);
+            blobUrlRef.current = null;
+        }
+    }, []);
+
+    const handleEnded = useCallback(() => {
+        setStatus("idle");
+    }, []);
+
+    const stopAudio = useCallback(() => {
+        cleanupAudio();
+        setStatus("idle");
+        setErrorMsg("");
+    }, [cleanupAudio]);
+
+    const handlePlay = useCallback(async () => {
+        // If paused, resume
+        if (status === "paused" && audioRef.current) {
+            audioRef.current.play();
+            setStatus("playing");
+            return;
+        }
+
+        // If already playing, do nothing
+        if (status === "loading") return;
+
+        // Fresh synthesis
+        cleanupAudio();
+        setErrorMsg("");
+
+        const text = getVisibleText(renditionRef);
+        if (!text) {
+            setErrorMsg("No text on this page");
+            setStatus("error");
+            return;
+        }
+
+        setStatus("loading");
+
+        try {
+            const rateStr =
+                speed === 0 ? undefined : `${speed >= 0 ? "+" : ""}${speed}%`;
+
+            // Get Firebase auth token for the request
+            const { auth } = await import("../../firebase/config.js");
+            const user = auth.currentUser;
+            const token = user ? await user.getIdToken() : null;
+
+            // Use native fetch (not axios) so we can stream the response.
+            // Axios buffers the entire response before returning which
+            // defeats the chunked transfer from the backend.
+            const response = await fetch(
+                "http://localhost:3000/tts/synthesize",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    },
+                    body: JSON.stringify({
+                        text,
+                        voice,
+                        rate: rateStr,
+                    }),
+                },
+            );
+
+            if (!response.ok) {
+                const err = await response.json().catch(() => ({}));
+                throw new Error(err.msg || `HTTP ${response.status}`);
+            }
+
+            // Read the stream and start playback as soon as possible
+            const reader = response.body.getReader();
+            const chunks = [];
+            let started = false;
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (value) chunks.push(value);
+
+                // Start playback after the first ~32KB of audio arrives
+                // (enough for a valid MP3 header + a few seconds of audio)
+                if (!started) {
+                    const totalBytes = chunks.reduce((s, c) => s + c.length, 0);
+                    if (totalBytes >= 32768 || done) {
+                        started = true;
+                        const partialBlob = new Blob(chunks, {
+                            type: "audio/mpeg",
+                        });
+                        const url = URL.createObjectURL(partialBlob);
+                        blobUrlRef.current = url;
+
+                        const audio = new Audio(url);
+                        audio.addEventListener("ended", handleEnded);
+                        audioRef.current = audio;
+                        audio.play();
+                        setStatus("playing");
+                    }
+                }
+
+                if (done) break;
+            }
+
+            // Once fully downloaded, replace with the complete blob for
+            // seamless pause/resume on the full audio
+            if (chunks.length > 0) {
+                const fullBlob = new Blob(chunks, { type: "audio/mpeg" });
+                const fullUrl = URL.createObjectURL(fullBlob);
+
+                if (audioRef.current) {
+                    const currentTime = audioRef.current.currentTime;
+                    const wasPlaying = !audioRef.current.paused;
+
+                    // Revoke the partial URL
+                    if (blobUrlRef.current && blobUrlRef.current !== fullUrl) {
+                        URL.revokeObjectURL(blobUrlRef.current);
+                    }
+
+                    audioRef.current.src = fullUrl;
+                    audioRef.current.currentTime = currentTime;
+                    blobUrlRef.current = fullUrl;
+
+                    if (wasPlaying) audioRef.current.play();
+                }
+            }
+        } catch (e) {
+            console.error("[tts] Playback error:", e);
+            setErrorMsg(e?.message || "Synthesis failed");
+            setStatus("error");
+        }
+    }, [status, voice, speed, renditionRef, cleanupAudio, handleEnded]);
+
+    const handlePause = useCallback(() => {
+        if (audioRef.current && status === "playing") {
+            audioRef.current.pause();
+            setStatus("paused");
+        }
+    }, [status]);
+
+    const isActive =
+        status === "playing" || status === "paused" || status === "loading";
+
     return (
         <Box sx={sx.container}>
             <Typography sx={sx.heading}>Listen Mode</Typography>
+
+            {/*  Playback controls  */}
             <Box sx={sx.controls}>
+                {/* Play / Pause toggle */}
+                {status === "playing" ? (
+                    <Box sx={sx.btn} onClick={handlePause} title="Pause">
+                        ❚❚
+                    </Box>
+                ) : (
+                    <Box
+                        sx={{
+                            ...sx.btn,
+                            ...(status === "loading" ? sx.btnDisabled : {}),
+                        }}
+                        onClick={handlePlay}
+                        title={
+                            status === "paused" ? "Resume" : "Read this page"
+                        }
+                    >
+                        {status === "loading" ? (
+                            <CircularProgress
+                                size={14}
+                                sx={{ color: "#00e0ff" }}
+                            />
+                        ) : (
+                            "▶"
+                        )}
+                    </Box>
+                )}
+
+                {/* Stop */}
                 <Box
-                    sx={sx.btn}
-                    onClick={() => console.log("[tts] Play/Pause clicked")}
-                >
-                    ▶
-                </Box>
-                <Box
-                    sx={sx.btn}
-                    onClick={() => console.log("[tts] Stop clicked")}
+                    sx={{
+                        ...sx.btn,
+                        ...(!isActive ? sx.btnDisabled : {}),
+                    }}
+                    onClick={isActive ? stopAudio : undefined}
+                    title="Stop"
                 >
                     ■
                 </Box>
             </Box>
-            <Typography sx={sx.status}>TTS — coming soon</Typography>
+
+            {/*  Voice selector  */}
+            <Box sx={sx.settingRow}>
+                <Typography sx={sx.label}>Voice</Typography>
+                <Select
+                    value={voice}
+                    onChange={(e) => {
+                        setVoice(e.target.value);
+                        // If audio is active, stop so new voice takes effect on next play
+                        if (isActive) stopAudio();
+                    }}
+                    size="small"
+                    sx={sx.select}
+                    MenuProps={{ PaperProps: { sx: sx.menuPaper } }}
+                >
+                    {DEFAULT_VOICES.map((v) => (
+                        <MenuItem key={v.name} value={v.name} sx={sx.menuItem}>
+                            {v.label}
+                        </MenuItem>
+                    ))}
+                </Select>
+            </Box>
+
+            {/*  Speed slider  */}
+            <Box sx={sx.settingRow}>
+                <Typography sx={sx.label}>Speed</Typography>
+                <Slider
+                    value={speed}
+                    onChange={(_, val) => {
+                        setSpeed(val);
+                        if (isActive) stopAudio();
+                    }}
+                    min={-50}
+                    max={100}
+                    step={25}
+                    marks={SPEED_MARKS}
+                    sx={sx.slider}
+                    size="small"
+                />
+            </Box>
+
+            {/*  Status line  */}
+            <Typography sx={sx.status}>
+                {status === "idle" && "Press ▶ to read this page aloud"}
+                {status === "loading" && "Synthesizing audio…"}
+                {status === "playing" && "♫ Playing…"}
+                {status === "paused" && "Paused"}
+                {status === "error" && (errorMsg || "Something went wrong")}
+            </Typography>
         </Box>
     );
 }
@@ -26,9 +385,8 @@ export default function TtsControls() {
 const sx = {
     container: {
         display: "flex",
-
         flexDirection: "column",
-        gap: 1,
+        gap: 1.25,
         px: 2,
         py: 1.5,
         borderBottom: "1px solid rgba(0, 224, 255, 0.06)",
@@ -56,15 +414,95 @@ const sx = {
         fontSize: "0.85rem",
         cursor: "pointer",
         transition: "all 0.2s",
+        userSelect: "none",
         "&:hover": {
             background: "rgba(0, 224, 255, 0.15)",
             borderColor: "rgba(0, 224, 255, 0.35)",
             boxShadow: "0 0 12px rgba(0, 224, 255, 0.1)",
         },
     },
-    status: {
+    btnDisabled: {
+        opacity: 0.35,
+        cursor: "default",
+        "&:hover": {
+            background: "rgba(0, 224, 255, 0.06)",
+            borderColor: "rgba(0, 224, 255, 0.12)",
+            boxShadow: "none",
+        },
+    },
+    settingRow: {
+        display: "flex",
+        alignItems: "center",
+        gap: 1.5,
+    },
+    label: {
         fontFamily: "'DM Sans', sans-serif",
         fontSize: "0.7rem",
+        color: "#71717a",
+        minWidth: 38,
+        flexShrink: 0,
+    },
+    select: {
+        flex: 1,
+        fontFamily: "'DM Sans', sans-serif",
+        fontSize: "0.7rem",
+        color: "#a1a1aa",
+        height: 30,
+        "& .MuiOutlinedInput-notchedOutline": {
+            borderColor: "rgba(0, 224, 255, 0.1)",
+            borderRadius: "8px",
+        },
+        "&:hover .MuiOutlinedInput-notchedOutline": {
+            borderColor: "rgba(0, 224, 255, 0.25)",
+        },
+        "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+            borderColor: "rgba(0, 224, 255, 0.4)",
+        },
+        "& .MuiSelect-icon": {
+            color: "#52525b",
+        },
+    },
+    menuPaper: {
+        background: "#0f0f18",
+        border: "1px solid rgba(0, 224, 255, 0.1)",
+        borderRadius: "10px",
+        maxHeight: 260,
+    },
+    menuItem: {
+        fontFamily: "'DM Sans', sans-serif",
+        fontSize: "0.72rem",
+        color: "#a1a1aa",
+        "&:hover": {
+            background: "rgba(0, 224, 255, 0.06)",
+        },
+        "&.Mui-selected": {
+            background: "rgba(0, 224, 255, 0.1)",
+            color: "#00e0ff",
+        },
+    },
+    slider: {
+        flex: 1,
+        color: "#00e0ff",
+        "& .MuiSlider-markLabel": {
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: "0.55rem",
+            color: "#52525b",
+        },
+        "& .MuiSlider-thumb": {
+            width: 12,
+            height: 12,
+        },
+        "& .MuiSlider-rail": {
+            opacity: 0.15,
+        },
+        "& .MuiSlider-mark": {
+            backgroundColor: "rgba(0, 224, 255, 0.2)",
+        },
+    },
+    status: {
+        fontFamily: "'DM Sans', sans-serif",
+        fontSize: "0.68rem",
         color: "#3f3f46",
+        mt: 0.25,
     },
 };
