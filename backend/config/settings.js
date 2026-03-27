@@ -18,3 +18,9 @@ export const ollamaConfig = {
     model: process.env.OLLAMA_MODEL || "llama3.2:3b",
     timeoutMs: Number(process.env.OLLAMA_TIMEOUT_MS) || 120_000,
 };
+
+/** Retrieval settings for book-grounded chat. */
+export const ragConfig = {
+    topK: Number(process.env.RAG_TOP_K) || 5,
+    contextMaxChars: Number(process.env.RAG_CONTEXT_MAX_CHARS) || 12_000,
+};
