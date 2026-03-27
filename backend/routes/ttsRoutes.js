@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { EdgeTTS, VoicesManager } from "edge-tts-universal";
+import { EdgeTTS, VoicesManager, Communicate } from "edge-tts-universal";
 import { verifyToken } from "../middleware/auth.js";
 
 const router = Router();
@@ -16,9 +16,7 @@ router.post("/synthesize", verifyToken, async (req, res) => {
             return res.status(400).json({ msg: "Text is required" });
         }
 
-        // Cap text length to avoid abuse (one page should be well under this)
         if (text.length > 10000) {
-            console.log("Text exceeds maximum length of 10,000 characters");
             return res.status(400).json({
                 msg: "Text exceeds maximum length of 10,000 characters",
             });
@@ -26,30 +24,36 @@ router.post("/synthesize", verifyToken, async (req, res) => {
 
         const selectedVoice = voice || "en-US-EmmaMultilingualNeural";
 
-        const options = {};
-        if (rate) options.rate = rate; // e.g. "+25%" or "-50%"
-        if (pitch) options.pitch = pitch; // e.g. "+10Hz"
+        const options = { voice: selectedVoice };
+        if (rate) options.rate = rate;
+        if (pitch) options.pitch = pitch;
 
-        // edge-tts-universal API
-        const tts = new EdgeTTS(text, selectedVoice, options);
-        const result = await tts.synthesize();
+        const communicate = new Communicate(text, options);
 
-        // convert to Buffer
-        const arrayBuf = await result.audio.arrayBuffer();
-        const audioBuffer = Buffer.from(arrayBuf);
-
+        // Set headers for a streamed audio response
         res.set({
             "Content-Type": "audio/mpeg",
-            "Content-Length": audioBuffer.length,
+            "Transfer-Encoding": "chunked",
             "Cache-Control": "no-cache",
         });
 
-        return res.send(audioBuffer);
+        // Stream audio chunks to the client as they arrive
+        for await (const chunk of communicate.stream()) {
+            if (chunk.type === "audio" && chunk.data) {
+                res.write(chunk.data);
+            }
+        }
+
+        res.end();
     } catch (e) {
         console.error("[tts] Synthesis error:", e.message);
-        return res.status(500).json({
-            msg: e.message || "TTS synthesis failed",
-        });
+        // Only send error JSON if headers haven't been sent yet
+        if (!res.headersSent) {
+            return res.status(500).json({
+                msg: e.message || "TTS synthesis failed",
+            });
+        }
+        res.end();
     }
 });
 
