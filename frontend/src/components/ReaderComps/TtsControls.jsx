@@ -8,32 +8,15 @@ import {
     CircularProgress,
 } from "@mui/material";
 
-// Default voices - a curated subset so users aren't overwhelmed
 const DEFAULT_VOICES = [
-    {
-        name: "en-US-EmmaMultilingualNeural",
-        label: "Emma (US)",
-        gender: "Female",
-    },
-    {
-        name: "en-US-AndrewMultilingualNeural",
-        label: "Andrew (US)",
-        gender: "Male",
-    },
-    {
-        name: "en-US-AvaMultilingualNeural",
-        label: "Ava (US)",
-        gender: "Female",
-    },
-    {
-        name: "en-US-BrianMultilingualNeural",
-        label: "Brian (US)",
-        gender: "Male",
-    },
-    { name: "en-GB-SoniaNeural", label: "Sonia (UK)", gender: "Female" },
-    { name: "en-GB-RyanNeural", label: "Ryan (UK)", gender: "Male" },
-    { name: "en-AU-NatashaNeural", label: "Natasha (AU)", gender: "Female" },
-    { name: "en-IN-NeerjaNeural", label: "Neerja (IN)", gender: "Female" },
+    { name: "en-US-EmmaMultilingualNeural", label: "Emma (US)" },
+    { name: "en-US-AndrewMultilingualNeural", label: "Andrew (US)" },
+    { name: "en-US-AvaMultilingualNeural", label: "Ava (US)" },
+    { name: "en-US-BrianMultilingualNeural", label: "Brian (US)" },
+    { name: "en-GB-SoniaNeural", label: "Sonia (UK)" },
+    { name: "en-GB-RyanNeural", label: "Ryan (UK)" },
+    { name: "en-AU-NatashaNeural", label: "Natasha (AU)" },
+    { name: "en-IN-NeerjaNeural", label: "Neerja (IN)" },
 ];
 
 const SPEED_MARKS = [
@@ -45,21 +28,57 @@ const SPEED_MARKS = [
     { value: 100, label: "2×" },
 ];
 
+// Split text into sentences. Handles ., !, ? followed by space or end.
+// Groups short fragments together so we don't fire too many requests.
+function splitIntoChunks(text, minChars = 80) {
+    const raw = text.match(/[^.!?]*[.!?]+[\s]?|[^.!?]+$/g) || [text];
+    const chunks = [];
+    let buffer = "";
+
+    for (const s of raw) {
+        buffer += s;
+        if (buffer.trim().length >= minChars) {
+            chunks.push(buffer.trim());
+            buffer = "";
+        }
+    }
+    if (buffer.trim().length > 0) {
+        chunks.push(buffer.trim());
+    }
+    return chunks;
+}
+
+// Fetch audio blob for a chunk of text
+async function fetchAudio(text, voice, rate, token, signal) {
+    const res = await fetch("http://localhost:3000/tts/synthesize", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ text, voice, rate }),
+        signal,
+    });
+
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.msg || `HTTP ${res.status}`);
+    }
+
+    return await res.blob();
+}
+
 /**
  * Extracts ONLY the visible text from the current epub page.
- *
- * epub.js loads the full chapter into an iframe and paginates via CSS
- * columns. We use rendition.currentLocation() to get the start/end
- * CFI (Canonical Fragment Identifier) for the visible page, then
- * convert those CFIs to DOM Ranges via epub.js's contents.range()
- * method and extract the text between them.
+ * Uses rendition.currentLocation() to get the start/end CFI
+ * for the visible page, then converts those CFIs to DOM Ranges
+ * via epub.js contents.range() and extracts the text between them.
  */
 function getVisibleText(renditionRef) {
     try {
         const rendition = renditionRef?.current;
         if (!rendition) return null;
 
-        // currentLocation() tells us exactly what CFI range is visible
         const location = rendition.currentLocation();
         if (!location?.start?.cfi || !location?.end?.cfi) return null;
 
@@ -70,32 +89,23 @@ function getVisibleText(renditionRef) {
         const doc = content?.document;
         if (!doc) return null;
 
-        // contents.range(cfi) converts a CFI to a DOM Range using epub.js internals
         let startRange, endRange;
         try {
             startRange = content.range(location.start.cfi);
             endRange = content.range(location.end.cfi);
         } catch {
-            console.warn("[tts] CFI range conversion failed, using fallback");
             return getFallbackText(doc);
         }
 
-        if (!startRange || !endRange) {
-            return getFallbackText(doc);
-        }
+        if (!startRange || !endRange) return getFallbackText(doc);
 
-        // Build a single Range spanning the entire visible page
         const pageRange = doc.createRange();
         pageRange.setStart(startRange.startContainer, startRange.startOffset);
         pageRange.setEnd(endRange.startContainer, endRange.startOffset);
 
         const text = pageRange.toString().replace(/\s+/g, " ").trim();
-
-        // Safety cap
-        const MAX_CHARS = 5000;
-        const result =
-            text.length > MAX_CHARS ? text.slice(0, MAX_CHARS) : text;
-
+        const MAX = 5000;
+        const result = text.length > MAX ? text.slice(0, MAX) : text;
         return result.length > 0 ? result : getFallbackText(doc);
     } catch (e) {
         console.error("[tts] Failed to extract page text:", e.message);
@@ -103,15 +113,10 @@ function getVisibleText(renditionRef) {
     }
 }
 
-/**
- * Fallback: grab a limited amount of text from the body.
- * Only used if CFI-based extraction fails entirely.
- */
 function getFallbackText(doc) {
     try {
         const raw = doc.body?.innerText || "";
         const cleaned = raw.replace(/\s+/g, " ").trim();
-        // Take only the first ~2000 chars as a rough page estimate
         return cleaned.length > 0 ? cleaned.slice(0, 2000) : null;
     } catch {
         return null;
@@ -119,25 +124,26 @@ function getFallbackText(doc) {
 }
 
 export default function TtsControls({ renditionRef }) {
-    const [status, setStatus] = useState("idle"); // idle | loading | playing | paused | error
+    const [status, setStatus] = useState("idle");
     const [voice, setVoice] = useState(DEFAULT_VOICES[0].name);
     const [speed, setSpeed] = useState(0);
     const [errorMsg, setErrorMsg] = useState("");
 
+    // Refs for the sentence queue playback system
     const audioRef = useRef(null);
     const blobUrlRef = useRef(null);
+    const abortRef = useRef(null); // AbortController to cancel fetches
+    const cancelledRef = useRef(false); // flag to stop the playback loop
+    const pausedResolveRef = useRef(null); // to resume from pause inside the loop
 
-    // Cleanup blob URL on unmount
     useEffect(() => {
-        return () => {
-            cleanupAudio();
-        };
+        return () => stopAudio();
     }, []);
 
-    const cleanupAudio = useCallback(() => {
+    const cleanupCurrentAudio = useCallback(() => {
         if (audioRef.current) {
             audioRef.current.pause();
-            audioRef.current.removeEventListener("ended", handleEnded);
+            audioRef.current.onended = null;
             audioRef.current = null;
         }
         if (blobUrlRef.current) {
@@ -146,30 +152,74 @@ export default function TtsControls({ renditionRef }) {
         }
     }, []);
 
-    const handleEnded = useCallback(() => {
-        setStatus("idle");
-    }, []);
-
     const stopAudio = useCallback(() => {
-        cleanupAudio();
+        cancelledRef.current = true;
+        if (abortRef.current) abortRef.current.abort();
+        // If paused and waiting, unblock the loop so it can exit
+        if (pausedResolveRef.current) {
+            pausedResolveRef.current();
+            pausedResolveRef.current = null;
+        }
+        cleanupCurrentAudio();
         setStatus("idle");
         setErrorMsg("");
-    }, [cleanupAudio]);
+    }, [cleanupCurrentAudio]);
 
-    const handlePlay = useCallback(async () => {
-        // If paused, resume
-        if (status === "paused" && audioRef.current) {
+    const handlePause = useCallback(() => {
+        if (audioRef.current && status === "playing") {
+            audioRef.current.pause();
+            setStatus("paused");
+        }
+    }, [status]);
+
+    const handleResume = useCallback(() => {
+        if (audioRef.current && status === "paused") {
             audioRef.current.play();
             setStatus("playing");
+            // Unblock the playback loop if it's waiting on pause
+            if (pausedResolveRef.current) {
+                pausedResolveRef.current();
+                pausedResolveRef.current = null;
+            }
+        }
+    }, [status]);
+
+    // Play a single blob and return a promise that resolves when it ends.
+    // If the user pauses, the promise waits until resumed or cancelled.
+    const playBlob = useCallback(
+        (blob) => {
+            return new Promise((resolve, reject) => {
+                if (cancelledRef.current) return resolve();
+
+                cleanupCurrentAudio();
+
+                const url = URL.createObjectURL(blob);
+                blobUrlRef.current = url;
+
+                const audio = new Audio(url);
+                audioRef.current = audio;
+
+                audio.onended = () => resolve();
+                audio.onerror = (e) =>
+                    reject(new Error("Audio playback error"));
+
+                audio.play().catch(reject);
+            });
+        },
+        [cleanupCurrentAudio],
+    );
+
+    const handlePlay = useCallback(async () => {
+        // Resume from pause
+        if (status === "paused") {
+            handleResume();
             return;
         }
 
-        // If already playing, do nothing
-        if (status === "loading") return;
+        if (status === "loading" || status === "playing") return;
 
-        // Fresh synthesis
-        cleanupAudio();
-        setErrorMsg("");
+        stopAudio();
+        cancelledRef.current = false;
 
         const text = getVisibleText(renditionRef);
         if (!text) {
@@ -184,102 +234,73 @@ export default function TtsControls({ renditionRef }) {
             const rateStr =
                 speed === 0 ? undefined : `${speed >= 0 ? "+" : ""}${speed}%`;
 
-            // Get Firebase auth token for the request
             const { auth } = await import("../../firebase/config.js");
             const user = auth.currentUser;
             const token = user ? await user.getIdToken() : null;
 
-            // Use native fetch (not axios) so we can stream the response.
-            // Axios buffers the entire response before returning which
-            // defeats the chunked transfer from the backend.
-            const response = await fetch(
-                "http://localhost:3000/tts/synthesize",
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                    },
-                    body: JSON.stringify({
-                        text,
-                        voice,
-                        rate: rateStr,
-                    }),
-                },
+            const chunks = splitIntoChunks(text);
+            const controller = new AbortController();
+            abortRef.current = controller;
+
+            // Prefetch first chunk
+            let nextBlobPromise = fetchAudio(
+                chunks[0],
+                voice,
+                rateStr,
+                token,
+                controller.signal,
             );
 
-            if (!response.ok) {
-                const err = await response.json().catch(() => ({}));
-                throw new Error(err.msg || `HTTP ${response.status}`);
-            }
+            for (let i = 0; i < chunks.length; i++) {
+                if (cancelledRef.current) break;
 
-            // Read the stream and start playback as soon as possible
-            const reader = response.body.getReader();
-            const chunks = [];
-            let started = false;
+                // Wait for the current chunk's audio
+                const blob = await nextBlobPromise;
+                if (cancelledRef.current) break;
 
-            while (true) {
-                const { done, value } = await reader.read();
-                if (value) chunks.push(value);
-
-                // Start playback after the first ~32KB of audio arrives
-                // (enough for a valid MP3 header + a few seconds of audio)
-                if (!started) {
-                    const totalBytes = chunks.reduce((s, c) => s + c.length, 0);
-                    if (totalBytes >= 32768 || done) {
-                        started = true;
-                        const partialBlob = new Blob(chunks, {
-                            type: "audio/mpeg",
-                        });
-                        const url = URL.createObjectURL(partialBlob);
-                        blobUrlRef.current = url;
-
-                        const audio = new Audio(url);
-                        audio.addEventListener("ended", handleEnded);
-                        audioRef.current = audio;
-                        audio.play();
-                        setStatus("playing");
-                    }
+                // Start prefetching the NEXT chunk while this one plays
+                if (i + 1 < chunks.length) {
+                    nextBlobPromise = fetchAudio(
+                        chunks[i + 1],
+                        voice,
+                        rateStr,
+                        token,
+                        controller.signal,
+                    );
                 }
 
-                if (done) break;
+                // Play current chunk
+                setStatus("playing");
+                await playBlob(blob);
+
+                // If paused after this chunk ended, wait until resumed
+                if (status === "paused" || audioRef.current?.paused) {
+                    // This case handles pause pressed right at chunk boundary
+                }
+
+                if (cancelledRef.current) break;
             }
 
-            // Once fully downloaded, replace with the complete blob for
-            // seamless pause/resume on the full audio
-            if (chunks.length > 0) {
-                const fullBlob = new Blob(chunks, { type: "audio/mpeg" });
-                const fullUrl = URL.createObjectURL(fullBlob);
-
-                if (audioRef.current) {
-                    const currentTime = audioRef.current.currentTime;
-                    const wasPlaying = !audioRef.current.paused;
-
-                    // Revoke the partial URL
-                    if (blobUrlRef.current && blobUrlRef.current !== fullUrl) {
-                        URL.revokeObjectURL(blobUrlRef.current);
-                    }
-
-                    audioRef.current.src = fullUrl;
-                    audioRef.current.currentTime = currentTime;
-                    blobUrlRef.current = fullUrl;
-
-                    if (wasPlaying) audioRef.current.play();
-                }
+            if (!cancelledRef.current) {
+                cleanupCurrentAudio();
+                setStatus("idle");
             }
         } catch (e) {
+            if (e.name === "AbortError" || cancelledRef.current) return;
             console.error("[tts] Playback error:", e);
             setErrorMsg(e?.message || "Synthesis failed");
             setStatus("error");
         }
-    }, [status, voice, speed, renditionRef, cleanupAudio, handleEnded]);
-
-    const handlePause = useCallback(() => {
-        if (audioRef.current && status === "playing") {
-            audioRef.current.pause();
-            setStatus("paused");
-        }
-    }, [status]);
+    }, [
+        status,
+        voice,
+        speed,
+        renditionRef,
+        stopAudio,
+        handleResume,
+        playBlob,
+        cleanupCurrentAudio,
+    ]);
 
     const isActive =
         status === "playing" || status === "paused" || status === "loading";
@@ -288,9 +309,8 @@ export default function TtsControls({ renditionRef }) {
         <Box sx={sx.container}>
             <Typography sx={sx.heading}>Listen Mode</Typography>
 
-            {/*  Playback controls  */}
+            {/* Playback controls */}
             <Box sx={sx.controls}>
-                {/* Play / Pause toggle */}
                 {status === "playing" ? (
                     <Box sx={sx.btn} onClick={handlePause} title="Pause">
                         ❚❚
@@ -317,7 +337,6 @@ export default function TtsControls({ renditionRef }) {
                     </Box>
                 )}
 
-                {/* Stop */}
                 <Box
                     sx={{
                         ...sx.btn,
@@ -330,14 +349,13 @@ export default function TtsControls({ renditionRef }) {
                 </Box>
             </Box>
 
-            {/*  Voice selector  */}
+            {/* Voice selector */}
             <Box sx={sx.settingRow}>
                 <Typography sx={sx.label}>Voice</Typography>
                 <Select
                     value={voice}
                     onChange={(e) => {
                         setVoice(e.target.value);
-                        // If audio is active, stop so new voice takes effect on next play
                         if (isActive) stopAudio();
                     }}
                     size="small"
@@ -352,7 +370,7 @@ export default function TtsControls({ renditionRef }) {
                 </Select>
             </Box>
 
-            {/*  Speed slider  */}
+            {/* Speed slider */}
             <Box sx={sx.settingRow}>
                 <Typography sx={sx.label}>Speed</Typography>
                 <Slider
@@ -370,7 +388,7 @@ export default function TtsControls({ renditionRef }) {
                 />
             </Box>
 
-            {/*  Status line  */}
+            {/* Status line */}
             <Typography sx={sx.status}>
                 {status === "idle" && "Press ▶ to read this page aloud"}
                 {status === "loading" && "Synthesizing audio…"}
