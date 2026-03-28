@@ -28,8 +28,17 @@ const SPEED_MARKS = [
     { value: 100, label: "2×" },
 ];
 
-// Split text into sentences. Handles ., !, ? followed by space or end.
-// Groups short fragments together so we don't fire too many requests.
+const TTS_HIGHLIGHT_CLASS = "kindleai-tts-highlight";
+const TTS_HIGHLIGHT_CSS = `
+    .${TTS_HIGHLIGHT_CLASS} {
+        background: rgba(0, 224, 255, 0.15) !important;
+        border-bottom: 2px solid rgba(0, 224, 255, 0.5) !important;
+        border-radius: 2px !important;
+        transition: background 0.2s ease !important;
+    }
+`;
+
+// Split text into sentence chunks, grouping short ones together
 function splitIntoChunks(text, minChars = 80) {
     const raw = text.match(/[^.!?]*[.!?]+[\s]?|[^.!?]+$/g) || [text];
     const chunks = [];
@@ -69,10 +78,139 @@ async function fetchAudio(text, voice, rate, token, signal) {
 }
 
 /**
- * Extracts ONLY the visible text from the current epub page.
- * Uses rendition.currentLocation() to get the start/end CFI
- * for the visible page, then converts those CFIs to DOM Ranges
- * via epub.js contents.range() and extracts the text between them.
+ * Injects the TTS highlight CSS into the epub iframe if not already present.
+ */
+function injectHighlightStyle(doc) {
+    if (doc.getElementById("kindleai-tts-style")) return;
+    const style = doc.createElement("style");
+    style.id = "kindleai-tts-style";
+    style.textContent = TTS_HIGHLIGHT_CSS;
+    doc.head.appendChild(style);
+}
+
+/**
+ * Clears all TTS highlights from the epub iframe.
+ * Unwraps the highlight spans back to plain text nodes.
+ */
+function clearHighlights(renditionRef) {
+    try {
+        const contents = renditionRef?.current?.getContents();
+        if (!contents || contents.length === 0) return;
+        const doc = contents[0]?.document;
+        if (!doc) return;
+
+        const marks = doc.querySelectorAll(`.${TTS_HIGHLIGHT_CLASS}`);
+        marks.forEach((mark) => {
+            const parent = mark.parentNode;
+            while (mark.firstChild) {
+                parent.insertBefore(mark.firstChild, mark);
+            }
+            parent.removeChild(mark);
+            parent.normalize(); // merge adjacent text nodes
+        });
+    } catch (e) {
+        console.warn("[tts] clearHighlights error:", e.message);
+    }
+}
+
+/**
+ * Highlights the given chunk text inside the epub iframe.
+ */
+function highlightChunk(renditionRef, chunkText) {
+    try {
+        const contents = renditionRef?.current?.getContents();
+        if (!contents || contents.length === 0) return;
+        const doc = contents[0]?.document;
+        if (!doc?.body) return;
+
+        injectHighlightStyle(doc);
+        clearHighlights(renditionRef);
+
+        // Collect all text nodes and build a position map
+        const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
+        const textNodes = [];
+        let fullText = "";
+
+        while (walker.nextNode()) {
+            const node = walker.currentNode;
+            const nodeText = node.textContent;
+            textNodes.push({
+                node,
+                start: fullText.length,
+                end: fullText.length + nodeText.length,
+                text: nodeText,
+            });
+            fullText += nodeText;
+        }
+
+        // Normalize whitespace in both the full text and chunk for matching
+        // Build a mapping from normalized index back to original index
+        const normMap = []; // normMap[normalizedIdx] = originalIdx
+        let normalized = "";
+        let lastWasSpace = true; // trim leading
+
+        for (let i = 0; i < fullText.length; i++) {
+            const ch = fullText[i];
+            if (/\s/.test(ch)) {
+                if (!lastWasSpace && i < fullText.length - 1) {
+                    normalized += " ";
+                    normMap.push(i);
+                    lastWasSpace = true;
+                }
+            } else {
+                normalized += ch;
+                normMap.push(i);
+                lastWasSpace = false;
+            }
+        }
+
+        const normChunk = chunkText.replace(/\s+/g, " ").trim();
+        const matchIdx = normalized.indexOf(normChunk);
+        if (matchIdx === -1) return;
+
+        // Map back to original string positions
+        const origStart = normMap[matchIdx];
+        const origEnd = normMap[matchIdx + normChunk.length - 1] + 1;
+
+        // Find which text nodes overlap with [origStart, origEnd)
+        const toWrap = [];
+        for (const tn of textNodes) {
+            if (tn.end <= origStart || tn.start >= origEnd) continue;
+
+            const wrapStart = Math.max(0, origStart - tn.start);
+            const wrapEnd = Math.min(tn.text.length, origEnd - tn.start);
+            toWrap.push({ ...tn, wrapStart, wrapEnd });
+        }
+
+        // Wrap matched portions in highlight spans (iterate in reverse
+        // so DOM mutations don't shift later nodes)
+        for (let i = toWrap.length - 1; i >= 0; i--) {
+            const { node, wrapStart, wrapEnd } = toWrap[i];
+            const range = doc.createRange();
+            range.setStart(node, wrapStart);
+            range.setEnd(node, wrapEnd);
+
+            const span = doc.createElement("span");
+            span.className = TTS_HIGHLIGHT_CLASS;
+            range.surroundContents(span);
+        }
+
+        // Scroll the first highlight into view
+        const firstHighlight = doc.querySelector(`.${TTS_HIGHLIGHT_CLASS}`);
+        if (firstHighlight) {
+            firstHighlight.scrollIntoView({
+                behavior: "smooth",
+                block: "center",
+            });
+        }
+    } catch (e) {
+        console.warn("[tts] highlightChunk error:", e.message);
+    }
+}
+
+/**
+ * Extracts ONLY the visible text from the current epub page
+ * using epub.js CFI range.
  */
 function getVisibleText(renditionRef) {
     try {
@@ -129,12 +267,11 @@ export default function TtsControls({ renditionRef }) {
     const [speed, setSpeed] = useState(0);
     const [errorMsg, setErrorMsg] = useState("");
 
-    // Refs for the sentence queue playback system
     const audioRef = useRef(null);
     const blobUrlRef = useRef(null);
-    const abortRef = useRef(null); // AbortController to cancel fetches
-    const cancelledRef = useRef(false); // flag to stop the playback loop
-    const pausedResolveRef = useRef(null); // to resume from pause inside the loop
+    const abortRef = useRef(null);
+    const cancelledRef = useRef(false);
+    const pausedResolveRef = useRef(null);
 
     useEffect(() => {
         return () => stopAudio();
@@ -155,15 +292,15 @@ export default function TtsControls({ renditionRef }) {
     const stopAudio = useCallback(() => {
         cancelledRef.current = true;
         if (abortRef.current) abortRef.current.abort();
-        // If paused and waiting, unblock the loop so it can exit
         if (pausedResolveRef.current) {
             pausedResolveRef.current();
             pausedResolveRef.current = null;
         }
         cleanupCurrentAudio();
+        clearHighlights(renditionRef);
         setStatus("idle");
         setErrorMsg("");
-    }, [cleanupCurrentAudio]);
+    }, [cleanupCurrentAudio, renditionRef]);
 
     const handlePause = useCallback(() => {
         if (audioRef.current && status === "playing") {
@@ -176,7 +313,6 @@ export default function TtsControls({ renditionRef }) {
         if (audioRef.current && status === "paused") {
             audioRef.current.play();
             setStatus("playing");
-            // Unblock the playback loop if it's waiting on pause
             if (pausedResolveRef.current) {
                 pausedResolveRef.current();
                 pausedResolveRef.current = null;
@@ -184,8 +320,6 @@ export default function TtsControls({ renditionRef }) {
         }
     }, [status]);
 
-    // Play a single blob and return a promise that resolves when it ends.
-    // If the user pauses, the promise waits until resumed or cancelled.
     const playBlob = useCallback(
         (blob) => {
             return new Promise((resolve, reject) => {
@@ -200,8 +334,7 @@ export default function TtsControls({ renditionRef }) {
                 audioRef.current = audio;
 
                 audio.onended = () => resolve();
-                audio.onerror = (e) =>
-                    reject(new Error("Audio playback error"));
+                audio.onerror = () => reject(new Error("Audio playback error"));
 
                 audio.play().catch(reject);
             });
@@ -210,7 +343,6 @@ export default function TtsControls({ renditionRef }) {
     );
 
     const handlePlay = useCallback(async () => {
-        // Resume from pause
         if (status === "paused") {
             handleResume();
             return;
@@ -254,11 +386,10 @@ export default function TtsControls({ renditionRef }) {
             for (let i = 0; i < chunks.length; i++) {
                 if (cancelledRef.current) break;
 
-                // Wait for the current chunk's audio
                 const blob = await nextBlobPromise;
                 if (cancelledRef.current) break;
 
-                // Start prefetching the NEXT chunk while this one plays
+                // Prefetch next chunk while this one plays
                 if (i + 1 < chunks.length) {
                     nextBlobPromise = fetchAudio(
                         chunks[i + 1],
@@ -269,20 +400,19 @@ export default function TtsControls({ renditionRef }) {
                     );
                 }
 
+                // Highlight current chunk in the reader
+                highlightChunk(renditionRef, chunks[i]);
+
                 // Play current chunk
                 setStatus("playing");
                 await playBlob(blob);
-
-                // If paused after this chunk ended, wait until resumed
-                if (status === "paused" || audioRef.current?.paused) {
-                    // This case handles pause pressed right at chunk boundary
-                }
 
                 if (cancelledRef.current) break;
             }
 
             if (!cancelledRef.current) {
                 cleanupCurrentAudio();
+                clearHighlights(renditionRef);
                 setStatus("idle");
             }
         } catch (e) {
