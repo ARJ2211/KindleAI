@@ -83,7 +83,7 @@ const STAGE_LABELS = {
     error: "Failed",
 };
 
-export default function BookCard({ book, onDelete, onAdd }) {
+export default function BookCard({ book, onDelete, onAdd, onAlert }) {
     const [imgError, setImgError] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
     const hasCover = book.cover_asset_key && !imgError;
@@ -202,6 +202,7 @@ export default function BookCard({ book, onDelete, onAdd }) {
                     onDelete(b);
                     setModalOpen(false);
                 }}
+                onAlert={onAlert}
             />
         </>
     );
