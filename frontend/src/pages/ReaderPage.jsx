@@ -10,7 +10,7 @@ import PageNavButtons from "../components/ReaderComps/PageNavButtons.jsx";
 import ReaderLoader from "../components/ReaderComps/ReaderLoader.jsx";
 import TtsControls from "../components/ReaderComps/TtsControls.jsx";
 import ChapterList from "../components/ReaderComps/ChapterList.jsx";
-import LlmChat from "../components/ReaderComps/LlmChat.jsx";
+import LlmChat from "../components/AiChat/LlmChat.jsx";
 
 const readerStyles = {
     container: { overflow: "hidden", height: "100%" },
@@ -263,7 +263,10 @@ export default function ReaderPage() {
                 </Box>
                 <Box sx={sx.rightPanel}>
                     <TtsControls renditionRef={renditionRef} />
-                    <LlmChat />
+                    <LlmChat
+                        bookId={bookId}
+                        embeddingReady={!!bookInfo?.embedding_ready}
+                    />
                 </Box>
             </Box>
         </Box>
