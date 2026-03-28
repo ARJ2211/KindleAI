@@ -1,5 +1,6 @@
 import { Server } from "socket.io";
 import { socketAuth } from "./authMiddleware.js";
+import { registerBookChatHandlers } from "./bookChatHandler.js";
 
 let io = null;
 
@@ -33,6 +34,8 @@ export const initSocket = (httpServer) => {
         socket.on("disconnect", (reason) => {
             console.log(`[socket] User disconnected: ${uid} (${reason})`);
         });
+
+        registerBookChatHandlers(socket);
     });
 
     console.log("[socket] Socket.io server initialized");
