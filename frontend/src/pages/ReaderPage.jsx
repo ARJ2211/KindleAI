@@ -11,6 +11,7 @@ import ReaderLoader from "../components/ReaderComps/ReaderLoader.jsx";
 import TtsControls from "../components/ReaderComps/TtsControls.jsx";
 import ChapterList from "../components/ReaderComps/ChapterList.jsx";
 import LlmChat from "../components/ReaderComps/LlmChat.jsx";
+import NotesModal from "../components/ReaderComps/notesModal.jsx";
 
 const readerStyles = {
     container: { overflow: "hidden", height: "100%" },
@@ -51,6 +52,9 @@ export default function ReaderPage() {
     const [savedCfi, setSavedCfi] = useState(null);
     const [readerReady, setReaderReady] = useState(false);
     const [settled, setSettled] = useState(false);
+    const [noteCount, setNoteCount] = useState(0);
+    const [notesList, setNotesList] = useState([]);
+    const [notesOpen, setNotesOpen] = useState(false);
 
     const saveTimerRef = useRef(null);
     const renditionRef = useRef(null);
@@ -122,8 +126,8 @@ export default function ReaderPage() {
         const percent = atEnd
             ? 100
             : pct != null && !isNaN(pct)
-              ? Math.round(pct * 10000) / 100
-              : 0;
+                ? Math.round(pct * 10000) / 100
+                : 0;
 
         console.log("[reader] Page changed:", cfi, `(${percent}%)`);
 
@@ -262,10 +266,24 @@ export default function ReaderPage() {
                     )}
                 </Box>
                 <Box sx={sx.rightPanel}>
-                    <TtsControls renditionRef={renditionRef} />
+                    <TtsControls
+                        renditionRef={renditionRef}
+                        currentPageHasNotes={notesList.some((n) => n.chapter === currentCfi)}
+                        onNotesClick={() => setNotesOpen((p) => !p)}
+                    />
                     <LlmChat />
                 </Box>
             </Box>
+            <NotesModal
+                bookId={bookId}
+                currentCfi={currentCfi}
+                open={notesOpen}
+                onClose={() => setNotesOpen(false)}
+                onCountChange={(count, list) => {
+                    setNoteCount(count);
+                    setNotesList(list);
+                }}
+            />
         </Box>
     );
 }
