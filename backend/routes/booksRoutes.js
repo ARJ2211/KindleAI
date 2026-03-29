@@ -94,7 +94,7 @@ router.post(
                 googleMeta,
             );
 
-            await redis.delCache("library:all").catch(() => {});
+            await redis.delCache("library:all").catch(() => { });
 
             const bookId = book._id.toString();
 
@@ -142,9 +142,9 @@ router.post(
         } catch (e) {
             // Cleanup if any errors
             if (finalPath) {
-                await unlink(finalPath).catch(() => {});
+                await unlink(finalPath).catch(() => { });
             } else if (req.file?.path) {
-                await unlink(req.file.path).catch(() => {});
+                await unlink(req.file.path).catch(() => { });
             }
 
             return res.status(e.status || 500).json({
