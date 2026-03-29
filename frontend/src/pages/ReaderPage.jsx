@@ -12,6 +12,7 @@ import TtsControls from "../components/ReaderComps/TtsControls.jsx";
 import ChapterList from "../components/ReaderComps/ChapterList.jsx";
 import LlmChat from "../components/ReaderComps/LlmChat.jsx";
 import NotesModal from "../components/ReaderComps/notesModal.jsx";
+import LlmChat from "../components/AiChat/LlmChat.jsx";
 
 const readerStyles = {
     container: { overflow: "hidden", height: "100%" },
@@ -272,6 +273,11 @@ export default function ReaderPage() {
                         onNotesClick={() => setNotesOpen((p) => !p)}
                     />
                     <LlmChat />
+                    <TtsControls renditionRef={renditionRef} />
+                    <LlmChat
+                        bookId={bookId}
+                        embeddingReady={!!bookInfo?.embedding_ready}
+                    />
                 </Box>
             </Box>
             <NotesModal

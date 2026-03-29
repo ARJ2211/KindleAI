@@ -8,7 +8,7 @@ import { StickyNote2Outlined as NoteIcon } from "@mui/icons-material";
  * Props:
  *  - renditionRef   {ref}      existing prop
  *  - currentPageHasNotes  {boolean}  true if current page has notes — green dot, else red
- *  - onNotesClick          {function} called when dot is clicked — toggles FloatingNotes
+ *  - onNotesClick          {function} called when dot is clicked — toggles modelNotes
  */
 export default function TtsControls({ renditionRef, currentPageHasNotes = false, onNotesClick }) {
 
