@@ -19,6 +19,28 @@ import { connectSocket } from "../../socket.js";
 
 const MAX_MESSAGE_CHARS = 4000;
 
+/** EPUB spine ids (item12) and similar — not useful in the Sources line. */
+function isGenericChapterLabel(title) {
+    const t = (title || "").trim();
+    return (
+        !t ||
+        /^item\d+$/i.test(t) ||
+        /^html\d+$/i.test(t) ||
+        /^xhtml\d+$/i.test(t)
+    );
+}
+
+/** Prefer a real title; otherwise a short excerpt preview from stored sources. */
+function formatSourceLabel(s) {
+    if (!isGenericChapterLabel(s?.chapterTitle)) {
+        const t = s.chapterTitle.trim();
+        return t.length > 72 ? `${t.slice(0, 69)}…` : t;
+    }
+    const ex = (s.excerpt || "").replace(/\s+/g, " ").trim();
+    if (ex) return ex.length > 72 ? `${ex.slice(0, 69)}…` : ex;
+    return "Book passage";
+}
+
 /**
  * Book-grounded assistant: loads history, streams replies over Socket.IO.
  *
@@ -307,7 +329,7 @@ export default function LlmChat({ bookId, embeddingReady }) {
                                         <Typography sx={styles.sourcesHint}>
                                             Sources:{" "}
                                             {m.sources
-                                                .map((s) => s.chapterTitle)
+                                                .map(formatSourceLabel)
                                                 .filter(Boolean)
                                                 .slice(0, 4)
                                                 .join(" · ")}
