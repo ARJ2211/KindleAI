@@ -15,16 +15,21 @@ React Reader
 
 ### Ollama (book assistant / RAG)
 
-The reader Book assistant calls Ollama over HTTP from the backend (`services/ollamaStream.js`). Ollama should run on your host (not inside Docker).
+The reader Book assistant calls Ollama over HTTP from the backend (`services/ollamaStream.js`).
 
-1. Install [Ollama](https://ollama.com) and keep it running (menu bar on macOS is fine).
-2. Pull the same model the backend expects (default in `docker-compose.yml` / `backend/config/settings.js`):
+Docker Compose (default):
 
-   ```bash
-   ollama pull llama3.2:3b
-   ```
+- Services `ollama` and `ollama-pull` run the server and download `llama3.2:3b` into the `ollama_data` volume (the pull container waits for the API, then exits; the backend waits until that finishes successfully).
+- The backend uses `OLLAMA_URL=http://ollama:11434` on the Compose network.
 
-3. Docker backend — `OLLAMA_URL` is set to `http://host.docker.internal:11434` so the container can reach Ollama on the host.
-4. Backend on the host (`npm run dev` in `backend/`) — defaults to `http://127.0.0.1:11434` if `OLLAMA_URL` is unset.
+```bash
+docker compose up --build
+```
 
-Optional env vars (see `backend/config/settings.js`): `OLLAMA_URL`, `OLLAMA_MODEL`, `OLLAMA_TIMEOUT_MS`. If you change `OLLAMA_MODEL`, run `ollama pull <name>` with that exact tag.
+First startup can take a while while the model downloads. If `kindleai-ollama-pull` fails, check logs: `docker compose logs ollama-pull`.
+
+Host Ollama instead (e.g. macOS app): set `OLLAMA_URL` to `http://host.docker.internal:11434` for the backend (env or a local `docker-compose.override.yml`).
+
+Backend on the host (`npm run dev` in `backend/`): defaults to `http://127.0.0.1:11434` if `OLLAMA_URL` is unset; install Ollama locally and `ollama pull` the same model as `OLLAMA_MODEL`.
+
+Optional env vars (see `backend/config/settings.js`): `OLLAMA_URL`, `OLLAMA_MODEL`, `OLLAMA_TIMEOUT_MS`. If you change `OLLAMA_MODEL`, update the `ollama pull` line in `docker-compose.yml` for the one-shot service (or pull manually inside the container).

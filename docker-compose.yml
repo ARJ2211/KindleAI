@@ -26,6 +26,32 @@ services:
     ports:
       - "27017:27017"
 
+  ollama:
+    image: ollama/ollama:latest
+    container_name: kindleai-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+  # One-shot: waits for Ollama API, then pulls the chat model into ollama_data.
+  ollama-pull:
+    image: ollama/ollama:latest
+    container_name: kindleai-ollama-pull
+    depends_on:
+      ollama:
+        condition: service_started
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint:
+      [
+        "/bin/sh",
+        "-c",
+        'until curl -sf http://ollama:11434/api/tags >/dev/null; do sleep 2; done && ollama pull llama3.2:3b',
+      ]
+    restart: "no"
+
   # --INDIVIDUAL RUN COMMAND: docker compose up backend
   backend:
     build:
@@ -41,16 +67,23 @@ services:
       MONGO_URL: mongodb://mongo:27017/
       REDIS_URL: redis://redis:6379
       QDRANT_URL: http://qdrant:6333
-      # Reach Ollama on the host (e.g. Mac). Native `npm run dev` can use defaults in settings.js instead.
-      OLLAMA_URL: http://host.docker.internal:11434
+      # In-compose Ollama service (see `ollama` + `ollama-pull`). For host Ollama instead, use http://host.docker.internal:11434.
+      OLLAMA_URL: http://ollama:11434
       OLLAMA_MODEL: llama3.2:3b
     volumes:
       - ./backend:/app
       - /app/node_modules
     depends_on:
-      - qdrant
-      - redis
-      - mongo
+      ollama:
+        condition: service_started
+      ollama-pull:
+        condition: service_completed_successfully
+      mongo:
+        condition: service_started
+      redis:
+        condition: service_started
+      qdrant:
+        condition: service_started
 
   # --INDIVIDUAL RUN COMMAND: docker compose up frontend
   frontend:
@@ -70,3 +103,4 @@ services:
 volumes:
   qdrant_data:
   redis_data:
+  ollama_data:
