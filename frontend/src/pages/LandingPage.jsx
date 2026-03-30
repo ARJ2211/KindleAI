@@ -1088,7 +1088,7 @@ function HoloBook() {
                     />
                 </rect>
 
-                {/* Floating particles */}
+                {/* modal particles */}
                 <circle cx="36" cy="110" r="1.8" fill="rgba(0,224,255,0.5)">
                     <animate
                         attributeName="cy"

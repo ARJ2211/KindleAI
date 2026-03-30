@@ -193,7 +193,7 @@ export const getAnnotationById = async (annotationId, userId) => {
 
 /**
  * Update for an note_text or selected_text .
- * owner can update the anotation
+ * owner can update.
  *
  * @param {string} annotationId
  * @param {string} userId
@@ -248,12 +248,12 @@ export const updateAnnotation = async (annotationId, userId, updates) => {
 };
 
 /**
- * Delete a single annotation by ID.
- * Only the owner can delete their annotation.
+ * Delete a single    annotation by ID.
+ * owner can delete    annotation.
  *
  * @param {string} annotationId
  * @param {string} userId
- * @returns {boolean} true if deleted
+ * @returns {boolean} 
  */
 export const deleteAnnotation = async (annotationId, userId) => {
     annotationId = helper.isValidString(annotationId);
@@ -278,11 +278,11 @@ export const deleteAnnotation = async (annotationId, userId) => {
 
 /**
  * Delete all annotations for a user and book.
- * Useful for when a user removes a book from their library.
+ * 
  *
  * @param {string} userId
  * @param {string} bookId
- * @returns {number} count of deleted annotations
+ * @returns {number} 
  */
 export const deleteAllAnnotationsForBook = async (userId, bookId) => {
     userId = helper.isValidString(userId);

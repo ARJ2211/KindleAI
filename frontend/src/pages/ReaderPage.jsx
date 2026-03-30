@@ -10,9 +10,9 @@ import PageNavButtons from "../components/ReaderComps/PageNavButtons.jsx";
 import ReaderLoader from "../components/ReaderComps/ReaderLoader.jsx";
 import TtsControls from "../components/ReaderComps/TtsControls.jsx";
 import ChapterList from "../components/ReaderComps/ChapterList.jsx";
-import LlmChat from "../components/ReaderComps/LlmChat.jsx";
-import NotesModal from "../components/ReaderComps/notesModal.jsx";
 import LlmChat from "../components/AiChat/LlmChat.jsx";
+import NotesModal from "../components/ReaderComps/notesModal.jsx";
+
 
 const readerStyles = {
     container: { overflow: "hidden", height: "100%" },
@@ -272,8 +272,6 @@ export default function ReaderPage() {
                         currentPageHasNotes={notesList.some((n) => n.chapter === currentCfi)}
                         onNotesClick={() => setNotesOpen((p) => !p)}
                     />
-                    <LlmChat />
-                    <TtsControls renditionRef={renditionRef} />
                     <LlmChat
                         bookId={bookId}
                         embeddingReady={!!bookInfo?.embedding_ready}

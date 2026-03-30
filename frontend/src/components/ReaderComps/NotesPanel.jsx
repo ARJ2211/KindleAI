@@ -18,14 +18,7 @@ import {
 import { useEffect, useState, useCallback } from "react";
 import api from "../../api/axios.js";
 
-/**
- * NotesPanel
- *
- * Props:
- *  - bookId         {string}    from useParams in ReaderPage
- *  - currentCfi     {string}    current epub CFI — passed down from ReaderPage state
- *  - onCountChange  {function}  called with (count, notesArray) whenever notes list changes
- */
+
 export default function NotesPanel({ bookId, currentCfi, onCountChange }) {
     const [notes, setNotes] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -37,12 +30,11 @@ export default function NotesPanel({ bookId, currentCfi, onCountChange }) {
     const [editBody, setEditBody] = useState("");
     const [editTitle, setEditTitle] = useState("");
 
-    // Sync count + list up to parent whenever notes changes
+
     useEffect(() => {
         onCountChange?.(notes.length, notes);
     }, [notes, onCountChange]);
 
-    // ── Fetch all notes for this book ──────────────────────────────────────
     const fetchNotes = useCallback(async () => {
         try {
             setLoading(true);
@@ -59,7 +51,7 @@ export default function NotesPanel({ bookId, currentCfi, onCountChange }) {
         if (bookId) fetchNotes();
     }, [bookId, fetchNotes]);
 
-    // ── Create ─────────────────────────────────────────────────────────────
+
     const handleCreate = async () => {
         if (!draftBody.trim()) return;
         setSaving(true);
@@ -83,10 +75,10 @@ export default function NotesPanel({ bookId, currentCfi, onCountChange }) {
         }
     };
 
-    // ── Edit ───────────────────────────────────────────────────────────────
+
     const startEdit = (note) => {
         setEditingId(note._id);
-        // Parse stored title prefix if present
+
         const match = note.note_text?.match(/^\[(.+?)\]\n([\s\S]*)$/);
         if (match) {
             setEditTitle(match[1]);
@@ -112,7 +104,6 @@ export default function NotesPanel({ bookId, currentCfi, onCountChange }) {
         }
     };
 
-    // ── Delete ─────────────────────────────────────────────────────────────
     const handleDelete = async (id) => {
         try {
             await api.delete(`/annotation/single/${id}`);
@@ -122,7 +113,7 @@ export default function NotesPanel({ bookId, currentCfi, onCountChange }) {
         }
     };
 
-    // ── Helpers ────────────────────────────────────────────────────────────
+
     const parseNote = (note) => {
         const match = note.note_text?.match(/^\[(.+?)\]\n([\s\S]*)$/);
         if (match) return { title: match[1], body: match[2] };
@@ -135,7 +126,7 @@ export default function NotesPanel({ bookId, currentCfi, onCountChange }) {
             day: "numeric",
         });
 
-    // ── Render ─────────────────────────────────────────────────────────────
+
     return (
         <Box sx={sx.container}>
             {/* Header */}

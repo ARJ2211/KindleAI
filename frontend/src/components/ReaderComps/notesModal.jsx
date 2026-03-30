@@ -21,16 +21,7 @@ import {
 import { useEffect, useState, useCallback, useRef } from "react";
 import api from "../../api/axios.js";
 
-/**
- * notesModal
- *
- * Props:
- *  - bookId         {string}
- *  - currentCfi     {string}
- *  - open           {boolean}   controlled by parent (dot click in TtsControls)
- *  - onClose        {function}
- *  - onCountChange  {function}  (count, notesArray) => void
- */
+
 export default function NotesModal({ bookId, currentCfi, open, onClose, onCountChange }) {
     const [notes, setNotes] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -44,18 +35,17 @@ export default function NotesModal({ bookId, currentCfi, open, onClose, onCountC
     const [opacity, setOpacity] = useState(0.96);
     const [showOpacity, setShowOpacity] = useState(false);
 
-    // Drag state
     const [pos, setPos] = useState({ x: 80, y: 80 });
     const dragging = useRef(false);
     const dragOffset = useRef({ x: 0, y: 0 });
     const modalRef = useRef(null);
 
-    // ── Sync count to parent ───────────────────────────────────────────────
+
     useEffect(() => {
         onCountChange?.(notes.length, notes);
     }, [notes, onCountChange]);
 
-    // ── Fetch ──────────────────────────────────────────────────────────────
+
     const fetchNotes = useCallback(async () => {
         try {
             setLoading(true);
@@ -72,7 +62,6 @@ export default function NotesModal({ bookId, currentCfi, open, onClose, onCountC
         if (bookId && open) fetchNotes();
     }, [bookId, open, fetchNotes]);
 
-    // ── Create ─────────────────────────────────────────────────────────────
     const handleCreate = async () => {
         if (!draftBody.trim()) return;
         setSaving(true);
@@ -96,7 +85,7 @@ export default function NotesModal({ bookId, currentCfi, open, onClose, onCountC
         }
     };
 
-    // ── Edit ───────────────────────────────────────────────────────────────
+
     const startEdit = (note) => {
         setEditingId(note._id);
         const match = note.note_text?.match(/^\[(.+?)\]\n([\s\S]*)$/);
@@ -124,7 +113,7 @@ export default function NotesModal({ bookId, currentCfi, open, onClose, onCountC
         }
     };
 
-    // ── Delete ─────────────────────────────────────────────────────────────
+
     const handleDelete = async (id) => {
         try {
             await api.delete(`/annotation/single/${id}`);
@@ -134,7 +123,7 @@ export default function NotesModal({ bookId, currentCfi, open, onClose, onCountC
         }
     };
 
-    // ── Drag ───────────────────────────────────────────────────────────────
+
     const onMouseDown = (e) => {
         dragging.current = true;
         dragOffset.current = {
@@ -161,7 +150,7 @@ export default function NotesModal({ bookId, currentCfi, open, onClose, onCountC
         };
     }, []);
 
-    // ── Helpers ────────────────────────────────────────────────────────────
+
     const parseNote = (note) => {
         const match = note.note_text?.match(/^\[(.+?)\]\n([\s\S]*)$/);
         if (match) return { title: match[1], body: match[2] };
