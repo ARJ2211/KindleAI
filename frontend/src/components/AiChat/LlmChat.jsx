@@ -118,8 +118,30 @@ export default function LlmChat({ bookId, embeddingReady }) {
             if (rid != null && rid !== requestIdRef.current) return;
             requestIdRef.current = null;
             setBusy(false);
-            setBanner(data?.msg || "Chat failed");
             await loadHistory();
+            setBanner(data?.msg || "Chat failed");
+        };
+
+        const resetInflightChat = async (msg) => {
+            if (!requestIdRef.current) return;
+            requestIdRef.current = null;
+            setBusy(false);
+            await loadHistory();
+            setBanner(msg);
+        };
+
+        const onSocketDisconnect = () => {
+            resetInflightChat(
+                "Connection lost while replying. You can send again.",
+            );
+        };
+
+        const onSocketConnectError = () => {
+            resetInflightChat("Could not reach chat server.");
+        };
+
+        const onManagerReconnect = () => {
+            setBanner(null);
         };
 
         connectSocket().then((s) => {
@@ -128,6 +150,9 @@ export default function LlmChat({ bookId, embeddingReady }) {
             s.on("book:chat:chunk", onChunk);
             s.on("book:chat:done", onDone);
             s.on("book:chat:error", onError);
+            s.on("disconnect", onSocketDisconnect);
+            s.on("connect_error", onSocketConnectError);
+            s.io.on("reconnect", onManagerReconnect);
         });
 
         return () => {
@@ -136,6 +161,9 @@ export default function LlmChat({ bookId, embeddingReady }) {
                 socket.off("book:chat:chunk", onChunk);
                 socket.off("book:chat:done", onDone);
                 socket.off("book:chat:error", onError);
+                socket.off("disconnect", onSocketDisconnect);
+                socket.off("connect_error", onSocketConnectError);
+                socket.io.off("reconnect", onManagerReconnect);
             }
         };
     }, [loadHistory]);
@@ -169,10 +197,11 @@ export default function LlmChat({ bookId, embeddingReady }) {
 
         connectSocket().then((s) => {
             if (!s) {
-                setBanner("Sign in required to chat");
                 setBusy(false);
                 requestIdRef.current = null;
-                loadHistory();
+                void loadHistory().then(() =>
+                    setBanner("Sign in required to chat"),
+                );
                 return;
             }
             const emitAsk = () => {
@@ -186,11 +215,11 @@ export default function LlmChat({ bookId, embeddingReady }) {
                 emitAsk();
             } else {
                 s.once("connect", emitAsk);
-                s.once("connect_error", () => {
-                    setBanner("Could not connect to server");
+                s.once("connect_error", async () => {
                     setBusy(false);
                     requestIdRef.current = null;
-                    loadHistory();
+                    await loadHistory();
+                    setBanner("Could not connect to server");
                 });
             }
         });
@@ -342,13 +371,17 @@ export default function LlmChat({ bookId, embeddingReady }) {
                 )}
             </Box>
 
+            <Typography sx={styles.inputHint} variant="caption" component="p">
+                Replies use passages from this book only—not general web chat.
+            </Typography>
+
             <Box sx={styles.inputRow}>
                 <TextField
                     fullWidth
                     multiline
                     maxRows={4}
                     size="small"
-                    placeholder="Ask about this book…"
+                    placeholder="Ask about plot, characters, or a passage in this book…"
                     value={input}
                     disabled={busy}
                     onChange={(e) =>
@@ -420,8 +453,16 @@ const styles = {
         display: "flex",
         flexDirection: "column",
         gap: 1,
-        mb: 1,
+        mb: 0.5,
         pr: 0.5,
+    },
+    inputHint: {
+        color: "#52525b",
+        fontSize: "0.65rem",
+        lineHeight: 1.4,
+        fontFamily: "'DM Sans', sans-serif",
+        mb: 0.75,
+        m: 0,
     },
     centered: {
         flex: 1,

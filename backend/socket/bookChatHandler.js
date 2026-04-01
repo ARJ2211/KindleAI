@@ -113,20 +113,47 @@ export function registerBookChatHandlers(socket) {
                 { role: "user", content: userContent },
             ];
 
+            const streamAbort = new AbortController();
+            const onDisconnect = () => streamAbort.abort();
+            socket.on("disconnect", onDisconnect);
+
             let fullReply = "";
-            await streamOllamaChat(messages, (piece) => {
-                fullReply += piece;
-                socket.emit("book:chat:chunk", { requestId, text: piece });
-            });
+            try {
+                await streamOllamaChat(
+                    messages,
+                    (piece) => {
+                        fullReply += piece;
+                        if (socket.connected) {
+                            socket.emit("book:chat:chunk", {
+                                requestId,
+                                text: piece,
+                            });
+                        }
+                    },
+                    streamAbort.signal,
+                );
 
-            const sources = toSourceRecords(chunks);
-            await chatData.appendChatMessage(uid, bookIdStr, {
-                role: "assistant",
-                content: fullReply || "(no response)",
-                sources,
-            });
+                const sources = toSourceRecords(chunks);
+                await chatData.appendChatMessage(uid, bookIdStr, {
+                    role: "assistant",
+                    content: fullReply || "(no response)",
+                    sources,
+                });
 
-            socket.emit("book:chat:done", { requestId, sources });
+                socket.emit("book:chat:done", { requestId, sources });
+            } catch (streamErr) {
+                // Only swallow aborts we triggered on socket disconnect.
+                // Ollama timeout/other AbortError must propagate to fail() below.
+                if (streamAbort.signal.aborted) {
+                    console.log(
+                        "[book:chat:ask] Stream aborted (client disconnected)",
+                    );
+                    return;
+                }
+                throw streamErr;
+            } finally {
+                socket.off("disconnect", onDisconnect);
+            }
         } catch (e) {
             console.error("[book:chat:ask]", e.message || e);
             fail(e.msg || e.message || "Chat failed");
