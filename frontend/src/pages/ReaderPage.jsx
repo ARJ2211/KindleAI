@@ -12,8 +12,7 @@ import ReaderLoader from "../components/ReaderComps/ReaderLoader.jsx";
 import TtsControls from "../components/ReaderComps/TtsControls.jsx";
 import ChapterList from "../components/ReaderComps/ChapterList.jsx";
 import LlmChat from "../components/AiChat/LlmChat.jsx";
-import NotesModal from "../components/ReaderComps/notesModal.jsx";
-
+import NotesModal from "../components/ReaderComps/NotesModal.jsx";
 
 const readerStyles = {
     container: { overflow: "hidden", height: "100%" },

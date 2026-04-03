@@ -1,4 +1,4 @@
-import { annotations, books } from "../config/mongoCollections.js";
+import { annotations, books, user_library } from "../config/mongoCollections.js";
 import { ObjectId } from "mongodb";
 import * as helper from "../helper.js";
 
@@ -52,6 +52,16 @@ export const createAnnotation = async (
     const bookExists = await booksCol.findOne({ _id: new ObjectId(bookId) });
     if (!bookExists) {
         helper.throwError(404, `Book ${bookId} not found`);
+    }
+
+    // Validate book is in user's library
+    const libraryCol = await user_library();
+    const inLibrary = await libraryCol.findOne({
+        user_id: userId,
+        book_id: new ObjectId(bookId),
+    });
+    if (!inLibrary) {
+        helper.throwError(403, `Book ${bookId} is not in your library`);
     }
 
     const col = await annotations();
