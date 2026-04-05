@@ -4,6 +4,7 @@ import { verifyToken } from "../middleware/auth.js";
 import * as helper from "../helper.js";
 import * as userLibraryData from "../data/userLibraryData.js";
 import * as bookData from "../data/bookData.js";
+import * as chatData from "../data/chatData.js";
 
 const router = Router();
 
@@ -76,6 +77,49 @@ router.delete("/:bookId", verifyToken, async (req, res) => {
         await userLibraryData.removeBookFromLibrary(uid, bookId);
 
         return res.status(200).json({ msg: "Book removed from your library" });
+    } catch (e) {
+        return res.status(e.status || 500).json({
+            msg: e.msg || "Internal server error",
+        });
+    }
+});
+
+// List persisted AI chat messages for a book (My Books only)
+router.get("/:bookId/chat", verifyToken, async (req, res) => {
+    try {
+        const uid = req.user.uid;
+        const bookId = helper.isValidString(req.params.bookId);
+
+        const entry = await userLibraryData.getUserLibraryEntry(uid, bookId);
+        if (!entry) {
+            return res.status(404).json({ msg: "Book not in your library" });
+        }
+
+        const messages = await chatData.getChatHistory(uid, bookId);
+        return res.status(200).json(messages);
+    } catch (e) {
+        return res.status(e.status || 500).json({
+            msg: e.msg || "Internal server error",
+        });
+    }
+});
+
+// Clear all AI chat messages for a book (My Books only)
+router.delete("/:bookId/chat", verifyToken, async (req, res) => {
+    try {
+        const uid = req.user.uid;
+        const bookId = helper.isValidString(req.params.bookId);
+
+        const entry = await userLibraryData.getUserLibraryEntry(uid, bookId);
+        if (!entry) {
+            return res.status(404).json({ msg: "Book not in your library" });
+        }
+
+        const deletedCount = await chatData.clearChatHistory(uid, bookId);
+        return res.status(200).json({
+            msg: "Chat cleared",
+            deletedCount,
+        });
     } catch (e) {
         return res.status(e.status || 500).json({
             msg: e.msg || "Internal server error",

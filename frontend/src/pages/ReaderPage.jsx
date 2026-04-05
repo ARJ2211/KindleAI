@@ -1,16 +1,24 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { Box, Typography, IconButton, CircularProgress } from "@mui/material";
+import {
+    Box,
+    Typography,
+    IconButton,
+    CircularProgress,
+    Tooltip,
+} from "@mui/material";
 import { ReactReader } from "react-reader";
 import api from "../api/axios.js";
 
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { StickyNote2Outlined as NoteIcon } from "@mui/icons-material";
 import { useEffect, useState, useRef, useCallback } from "react";
 
 import PageNavButtons from "../components/ReaderComps/PageNavButtons.jsx";
 import ReaderLoader from "../components/ReaderComps/ReaderLoader.jsx";
 import TtsControls from "../components/ReaderComps/TtsControls.jsx";
 import ChapterList from "../components/ReaderComps/ChapterList.jsx";
-import LlmChat from "../components/ReaderComps/LlmChat.jsx";
+import LlmChat from "../components/AiChat/LlmChat.jsx";
+import NotesModal from "../components/ReaderComps/NotesModal.jsx";
 
 const readerStyles = {
     container: { overflow: "hidden", height: "100%" },
@@ -51,6 +59,14 @@ export default function ReaderPage() {
     const [savedCfi, setSavedCfi] = useState(null);
     const [readerReady, setReaderReady] = useState(false);
     const [settled, setSettled] = useState(false);
+    const [noteCount, setNoteCount] = useState(0);
+    const [notesList, setNotesList] = useState([]);
+    const [notesOpen, setNotesOpen] = useState(false);
+
+    const handleCountChange = useCallback((count, list) => {
+        setNoteCount(count);
+        setNotesList(list);
+    }, []);
 
     const saveTimerRef = useRef(null);
     const renditionRef = useRef(null);
@@ -59,6 +75,31 @@ export default function ReaderPage() {
     const settledRef = useRef(false);
     // Queued CFI to save once locations are ready
     const pendingSaveRef = useRef(null);
+
+    // Fetch notes whenever currentCfi changes so the dot indicator is always correct
+    useEffect(() => {
+        if (!bookId || !currentCfi) return;
+        api.get(`/annotation/${bookId}?type=note&_=${Date.now()}`)
+            .then((res) => {
+                const list = res.data || [];
+                setNotesList(list);
+                setNoteCount(list.length);
+            })
+            .catch(() => {});
+    }, [bookId, currentCfi]);
+
+    // Fetch notes once after epub is fully settled (handles resume case where
+    // handleLocationChanged never fires after locations are generated)
+    useEffect(() => {
+        if (!bookId || !settled) return;
+        api.get(`/annotation/${bookId}?type=note&_=${Date.now()}`)
+            .then((res) => {
+                const list = res.data || [];
+                setNotesList(list);
+                setNoteCount(list.length);
+            })
+            .catch(() => {});
+    }, [bookId, settled]);
 
     useEffect(() => {
         const init = async () => {
@@ -209,6 +250,10 @@ export default function ReaderPage() {
         return <ReaderLoader message={error} />;
     }
 
+    const currentPageHasNotes = notesList.some(
+        (n) => n.chapter === (currentCfi || savedCfi),
+    );
+
     return (
         <Box sx={sx.page}>
             <Box sx={sx.topBar}>
@@ -228,6 +273,48 @@ export default function ReaderPage() {
                         </Typography>
                     </Box>
                 )}
+
+                {/* Spacer to push notes dot to the right */}
+                <Box sx={{ flex: 1 }} />
+
+                {/* Notes dot — right side of topBar */}
+                <Tooltip
+                    title={
+                        currentPageHasNotes
+                            ? "Notes on this page"
+                            : "No notes on this page"
+                    }
+                    placement="bottom"
+                >
+                    <Box
+                        sx={sx.notesDot}
+                        onClick={() => setNotesOpen((p) => !p)}
+                    >
+                        <Typography
+                            sx={{
+                                fontFamily: "'DM Sans', sans-serif",
+                                fontSize: "0.68rem",
+                                color: currentPageHasNotes
+                                    ? "#4ade80"
+                                    : "#ff6b6b",
+                                lineHeight: 1,
+                            }}
+                        >
+                            Notes
+                        </Typography>
+                        <Box
+                            sx={currentPageHasNotes ? sx.dotGreen : sx.dotRed}
+                        />
+                        <NoteIcon
+                            sx={{
+                                fontSize: "0.7rem",
+                                color: currentPageHasNotes
+                                    ? "#4ade80"
+                                    : "#ff6b6b",
+                            }}
+                        />
+                    </Box>
+                </Tooltip>
             </Box>
 
             <Box sx={sx.contentArea}>
@@ -263,9 +350,20 @@ export default function ReaderPage() {
                 </Box>
                 <Box sx={sx.rightPanel}>
                     <TtsControls renditionRef={renditionRef} />
-                    <LlmChat />
+                    <LlmChat
+                        bookId={bookId}
+                        embeddingReady={!!bookInfo?.embedding_ready}
+                    />
                 </Box>
             </Box>
+            <NotesModal
+                bookId={bookId}
+                currentCfi={currentCfi}
+                open={notesOpen}
+                onClose={() => setNotesOpen(false)}
+                onCountChange={handleCountChange}
+                onNavigate={(cfi) => renditionRef.current?.display(cfi)}
+            />
         </Box>
     );
 }
@@ -362,5 +460,38 @@ const sx = {
         fontSize: "0.7rem",
         color: "#52525b",
         mt: 0.25,
+    },
+    notesDot: {
+        display: "flex",
+        alignItems: "center",
+        gap: 0.5,
+        cursor: "pointer",
+        px: 0.75,
+        py: 0.4,
+        borderRadius: "6px",
+        border: "1px solid rgba(255,255,255,0.05)",
+        background: "rgba(10, 10, 15, 0.7)",
+        transition: "all 0.2s",
+        flexShrink: 0,
+        "&:hover": {
+            background: "rgba(255,255,255,0.04)",
+            borderColor: "rgba(255,255,255,0.1)",
+        },
+    },
+    dotGreen: {
+        width: 7,
+        height: 7,
+        borderRadius: "50%",
+        background: "#4ade80",
+        boxShadow: "0 0 6px rgba(74, 222, 128, 0.6)",
+        flexShrink: 0,
+    },
+    dotRed: {
+        width: 7,
+        height: 7,
+        borderRadius: "50%",
+        background: "#ff6b6b",
+        boxShadow: "0 0 6px rgba(255, 107, 107, 0.5)",
+        flexShrink: 0,
     },
 };
