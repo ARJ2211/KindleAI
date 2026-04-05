@@ -101,6 +101,16 @@ export const getAnnotationsByUserAndBook = async (userId, bookId) => {
         helper.throwError(400, `Invalid book ID: ${bookId}`);
     }
 
+    // Validate book is in user's library
+    const libraryCol = await user_library();
+    const inLibrary = await libraryCol.findOne({
+        user_id: userId,
+        book_id: new ObjectId(bookId),
+    });
+    if (!inLibrary) {
+        helper.throwError(403, `Book ${bookId} is not in your library`);
+    }
+
     const col = await annotations();
 
     return col

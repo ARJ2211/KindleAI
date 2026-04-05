@@ -57,6 +57,11 @@ export default function ReaderPage() {
     const [notesList, setNotesList] = useState([]);
     const [notesOpen, setNotesOpen] = useState(false);
 
+    const handleCountChange = useCallback((count, list) => {
+        setNoteCount(count);
+        setNotesList(list);
+    }, []);
+
     const saveTimerRef = useRef(null);
     const renditionRef = useRef(null);
     const locationsReadyRef = useRef(false);
@@ -64,6 +69,31 @@ export default function ReaderPage() {
     const settledRef = useRef(false);
     // Queued CFI to save once locations are ready
     const pendingSaveRef = useRef(null);
+
+    // Fetch notes whenever currentCfi changes so the dot indicator is always correct
+    useEffect(() => {
+        if (!bookId || !currentCfi) return;
+        api.get(`/annotation/${bookId}?type=note&_=${Date.now()}`)
+            .then((res) => {
+                const list = res.data || [];
+                setNotesList(list);
+                setNoteCount(list.length);
+            })
+            .catch(() => { });
+    }, [bookId, currentCfi]);
+
+    // Fetch notes once after epub is fully settled (handles resume case where
+    // handleLocationChanged never fires after locations are generated)
+    useEffect(() => {
+        if (!bookId || !settled) return;
+        api.get(`/annotation/${bookId}?type=note&_=${Date.now()}`)
+            .then((res) => {
+                const list = res.data || [];
+                setNotesList(list);
+                setNoteCount(list.length);
+            })
+            .catch(() => { });
+    }, [bookId, settled]);
 
     useEffect(() => {
         const init = async () => {
@@ -168,6 +198,8 @@ export default function ReaderPage() {
                         setSettled(true);
                         settledRef.current = true;
                         console.log("[reader] Settled, saves enabled");
+
+
                     }, 800);
                 });
         },
@@ -214,7 +246,7 @@ export default function ReaderPage() {
         return <ReaderLoader message={error} />;
     }
 
-    const currentPageHasNotes = notesList.some((n) => n.chapter === currentCfi);
+    const currentPageHasNotes = notesList.some((n) => n.chapter === (currentCfi || savedCfi));
 
     return (
         <Box sx={sx.page}>
@@ -298,10 +330,7 @@ export default function ReaderPage() {
                 currentCfi={currentCfi}
                 open={notesOpen}
                 onClose={() => setNotesOpen(false)}
-                onCountChange={(count, list) => {
-                    setNoteCount(count);
-                    setNotesList(list);
-                }}
+                onCountChange={handleCountChange}
             />
         </Box>
     );
