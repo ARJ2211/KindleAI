@@ -21,8 +21,13 @@ import {
 import { useEffect, useState, useCallback, useRef } from "react";
 import api from "../../api/axios.js";
 
-
-export default function NotesModal({ bookId, currentCfi, open, onClose, onCountChange }) {
+export default function NotesModal({
+    bookId,
+    currentCfi,
+    open,
+    onClose,
+    onCountChange,
+}) {
     const [notes, setNotes] = useState([]);
     const [loading, setLoading] = useState(true);
     const [composing, setComposing] = useState(false);
@@ -40,11 +45,9 @@ export default function NotesModal({ bookId, currentCfi, open, onClose, onCountC
     const dragOffset = useRef({ x: 0, y: 0 });
     const modalRef = useRef(null);
 
-
     useEffect(() => {
         onCountChange?.(notes.length, notes);
     }, [notes, onCountChange]);
-
 
     const fetchNotes = useCallback(async () => {
         try {
@@ -85,7 +88,6 @@ export default function NotesModal({ bookId, currentCfi, open, onClose, onCountC
         }
     };
 
-
     const startEdit = (note) => {
         setEditingId(note._id);
         const match = note.note_text?.match(/^\[(.+?)\]\n([\s\S]*)$/);
@@ -99,7 +101,7 @@ export default function NotesModal({ bookId, currentCfi, open, onClose, onCountC
     };
 
     const handleSaveEdit = async (id) => {
-        if (!editBody.trim()) return;
+        if (!editBody.trim() || !editTitle.trim()) return;
         try {
             await api.patch(`/annotation/single/${id}`, {
                 note_text: editTitle.trim()
@@ -113,7 +115,6 @@ export default function NotesModal({ bookId, currentCfi, open, onClose, onCountC
         }
     };
 
-
     const handleDelete = async (id) => {
         try {
             await api.delete(`/annotation/single/${id}`);
@@ -122,7 +123,6 @@ export default function NotesModal({ bookId, currentCfi, open, onClose, onCountC
             console.warn("[notes] Delete failed:", err.message);
         }
     };
-
 
     const onMouseDown = (e) => {
         dragging.current = true;
@@ -141,7 +141,9 @@ export default function NotesModal({ bookId, currentCfi, open, onClose, onCountC
                 y: e.clientY - dragOffset.current.y,
             });
         };
-        const onMouseUp = () => { dragging.current = false; };
+        const onMouseUp = () => {
+            dragging.current = false;
+        };
         window.addEventListener("mousemove", onMouseMove);
         window.addEventListener("mouseup", onMouseUp);
         return () => {
@@ -150,7 +152,6 @@ export default function NotesModal({ bookId, currentCfi, open, onClose, onCountC
         };
     }, []);
 
-
     const parseNote = (note) => {
         const match = note.note_text?.match(/^\[(.+?)\]\n([\s\S]*)$/);
         if (match) return { title: match[1], body: match[2] };
@@ -158,7 +159,10 @@ export default function NotesModal({ bookId, currentCfi, open, onClose, onCountC
     };
 
     const formatDate = (d) =>
-        new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+        new Date(d).toLocaleDateString(undefined, {
+            month: "short",
+            day: "numeric",
+        });
 
     if (!open) return null;
 
@@ -177,7 +181,8 @@ export default function NotesModal({ bookId, currentCfi, open, onClose, onCountC
                 background: `rgba(10, 10, 18, ${opacity})`,
                 border: "1px solid rgba(0, 224, 255, 0.15)",
                 borderRadius: "14px",
-                boxShadow: "0 24px 64px rgba(0,0,0,0.7), 0 0 32px rgba(0,224,255,0.05)",
+                boxShadow:
+                    "0 24px 64px rgba(0,0,0,0.7), 0 0 32px rgba(0,224,255,0.05)",
                 backdropFilter: "blur(16px)",
                 overflow: "hidden",
                 opacity: opacity,
@@ -202,68 +207,173 @@ export default function NotesModal({ bookId, currentCfi, open, onClose, onCountC
             >
                 <DragIcon sx={{ fontSize: "0.9rem", color: "#3f3f46" }} />
                 <NoteIcon sx={{ fontSize: "0.85rem", color: "#00e0ff" }} />
-                <Typography sx={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: "0.8rem", color: "#e4e4e8", flex: 1 }}>
+                <Typography
+                    sx={{
+                        fontFamily: "'Syne', sans-serif",
+                        fontWeight: 700,
+                        fontSize: "0.8rem",
+                        color: "#e4e4e8",
+                        flex: 1,
+                    }}
+                >
                     Notes
                 </Typography>
                 {notes.length > 0 && (
-                    <Box sx={{ background: "rgba(0,224,255,0.1)", border: "1px solid rgba(0,224,255,0.18)", borderRadius: "6px", px: 0.75, fontFamily: "'JetBrains Mono', monospace", fontSize: "0.62rem", color: "#00e0ff", lineHeight: 1.8 }}>
+                    <Box
+                        sx={{
+                            background: "rgba(0,224,255,0.1)",
+                            border: "1px solid rgba(0,224,255,0.18)",
+                            borderRadius: "6px",
+                            px: 0.75,
+                            fontFamily: "'JetBrains Mono', monospace",
+                            fontSize: "0.62rem",
+                            color: "#00e0ff",
+                            lineHeight: 1.8,
+                        }}
+                    >
                         {notes.length}
                     </Box>
                 )}
 
                 {/* Opacity toggle */}
                 <Tooltip title="Opacity" placement="top">
-                    <IconButton size="small" onClick={() => setShowOpacity(p => !p)} sx={{ color: showOpacity ? "#00e0ff" : "#3f3f46", width: 24, height: 24, borderRadius: "6px", "&:hover": { color: "#00e0ff" } }}>
+                    <IconButton
+                        size="small"
+                        onClick={() => setShowOpacity((p) => !p)}
+                        sx={{
+                            color: showOpacity ? "#00e0ff" : "#3f3f46",
+                            width: 24,
+                            height: 24,
+                            borderRadius: "6px",
+                            "&:hover": { color: "#00e0ff" },
+                        }}
+                    >
                         <OpacityIcon sx={{ fontSize: "0.8rem" }} />
                     </IconButton>
                 </Tooltip>
 
                 {/* Add note */}
                 <Tooltip title="Add note" placement="top">
-                    <IconButton size="small" onClick={() => setComposing(p => !p)} sx={{ color: composing ? "#00e0ff" : "#52525b", border: "1px solid rgba(0,224,255,0.15)", borderRadius: "6px", width: 24, height: 24, "&:hover": { color: "#00e0ff", background: "rgba(0,224,255,0.08)" } }}>
-                        {composing ? <CloseIcon sx={{ fontSize: "0.8rem" }} /> : <AddIcon sx={{ fontSize: "0.8rem" }} />}
+                    <IconButton
+                        size="small"
+                        onClick={() => setComposing((p) => !p)}
+                        sx={{
+                            color: composing ? "#00e0ff" : "#52525b",
+                            border: "1px solid rgba(0,224,255,0.15)",
+                            borderRadius: "6px",
+                            width: 24,
+                            height: 24,
+                            "&:hover": {
+                                color: "#00e0ff",
+                                background: "rgba(0,224,255,0.08)",
+                            },
+                        }}
+                    >
+                        {composing ? (
+                            <CloseIcon sx={{ fontSize: "0.8rem" }} />
+                        ) : (
+                            <AddIcon sx={{ fontSize: "0.8rem" }} />
+                        )}
                     </IconButton>
                 </Tooltip>
 
                 {/* Close */}
                 <Tooltip title="Close" placement="top">
-                    <IconButton size="small" onClick={onClose} sx={{ color: "#52525b", width: 24, height: 24, borderRadius: "6px", "&:hover": { color: "#ff6b6b", background: "rgba(255,107,107,0.06)" } }}>
+                    <IconButton
+                        size="small"
+                        onClick={onClose}
+                        sx={{
+                            color: "#52525b",
+                            width: 24,
+                            height: 24,
+                            borderRadius: "6px",
+                            "&:hover": {
+                                color: "#ff6b6b",
+                                background: "rgba(255,107,107,0.06)",
+                            },
+                        }}
+                    >
                         <CloseIcon sx={{ fontSize: "0.8rem" }} />
                     </IconButton>
                 </Tooltip>
             </Box>
 
             {/* ── Opacity slider ── */}
-            <Collapse in={showOpacity} unmountOnExit>
-                <Box sx={{ px: 2, py: 1, borderBottom: "1px solid rgba(0,224,255,0.06)", display: "flex", alignItems: "center", gap: 1.5 }}>
-                    <OpacityIcon sx={{ fontSize: "0.75rem", color: "#52525b" }} />
+            <Collapse
+                in={showOpacity}
+                unmountOnExit
+                sx={{ flexShrink: 0, overflow: "hidden" }}
+            >
+                <Box
+                    sx={{
+                        px: 2,
+                        py: 1,
+                        borderBottom: "1px solid rgba(0,224,255,0.06)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1.5,
+                    }}
+                >
+                    <OpacityIcon
+                        sx={{ fontSize: "0.75rem", color: "#52525b" }}
+                    />
                     <Slider
                         value={opacity}
-                        onChange={(_, v) => setOpacity(v)}
-                        min={0.2}
+                        onChange={(_, v) => {
+                            if (v <= 0.6) {
+                                setOpacity(0.6);
+                            } else {
+                                setOpacity(v);
+                            }
+                        }}
+                        min={0.6}
                         max={1}
-                        step={0.05}
+                        step={0.01}
                         size="small"
                         sx={{
                             color: "#00e0ff",
                             "& .MuiSlider-thumb": { width: 12, height: 12 },
-                            "& .MuiSlider-rail": { background: "rgba(255,255,255,0.08)" },
+                            "& .MuiSlider-rail": {
+                                background: "rgba(255,255,255,0.08)",
+                            },
                         }}
                     />
-                    <Typography sx={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "0.62rem", color: "#52525b", minWidth: 28 }}>
+                    <Typography
+                        sx={{
+                            fontFamily: "'JetBrains Mono', monospace",
+                            fontSize: "0.62rem",
+                            color: "#52525b",
+                            minWidth: 28,
+                        }}
+                    >
                         {Math.round(opacity * 100)}%
                     </Typography>
                 </Box>
             </Collapse>
-
             {/* ── Compose form ── */}
-            <Collapse in={composing} unmountOnExit>
-                <Box sx={{ px: 2, py: 1.5, display: "flex", flexDirection: "column", gap: 1, borderBottom: "1px solid rgba(0,224,255,0.06)", background: "rgba(0,224,255,0.02)" }}>
+            <Collapse
+                in={composing}
+                unmountOnExit
+                sx={{ flexShrink: 0, overflow: "hidden" }}
+            >
+                <Box
+                    sx={{
+                        px: 2,
+                        py: 1.5,
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 1,
+                        borderBottom: "1px solid rgba(0,224,255,0.06)",
+                        background: "rgba(0,224,255,0.02)",
+                    }}
+                >
                     <TextField
-                        placeholder="Note title (optional)"
+                        placeholder="Note title"
                         value={draftTitle}
                         onChange={(e) => setDraftTitle(e.target.value)}
-                        fullWidth size="small" variant="outlined"
+                        fullWidth
+                        size="small"
+                        variant="outlined"
                         sx={sx.input}
                         inputProps={{ maxLength: 80 }}
                     />
@@ -271,59 +381,212 @@ export default function NotesModal({ bookId, currentCfi, open, onClose, onCountC
                         placeholder="Write your note…"
                         value={draftBody}
                         onChange={(e) => setDraftBody(e.target.value)}
-                        fullWidth multiline minRows={3} maxRows={5}
-                        size="small" variant="outlined"
+                        fullWidth
+                        multiline
+                        minRows={3}
+                        maxRows={5}
+                        size="small"
+                        variant="outlined"
                         sx={sx.input}
                     />
                     <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
                         <Box
                             component="button"
                             onClick={handleCreate}
-                            disabled={saving || !draftBody.trim()}
+                            disabled={
+                                saving ||
+                                !draftBody.trim() ||
+                                !draftTitle.trim()
+                            }
                             sx={sx.saveBtn}
                         >
-                            {saving ? <CircularProgress size={10} sx={{ color: "#0a0a0f" }} /> : "Save note"}
+                            {saving ? (
+                                <CircularProgress
+                                    size={10}
+                                    sx={{ color: "#0a0a0f" }}
+                                />
+                            ) : (
+                                "Save note"
+                            )}
                         </Box>
                     </Box>
                 </Box>
             </Collapse>
 
             {/* ── Notes list ── */}
-            <Box sx={{ flex: 1, overflowY: "auto", py: 1, px: 1.5, display: "flex", flexDirection: "column", gap: 0.5, "&::-webkit-scrollbar": { width: "3px" }, "&::-webkit-scrollbar-track": { background: "transparent" }, "&::-webkit-scrollbar-thumb": { background: "rgba(0,224,255,0.1)", borderRadius: "2px" } }}>
+            <Box
+                sx={{
+                    flex: 1,
+                    overflowY: "auto",
+                    py: 1,
+                    px: 1.5,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 0.5,
+                    "&::-webkit-scrollbar": { width: "3px" },
+                    "&::-webkit-scrollbar-track": { background: "transparent" },
+                    "&::-webkit-scrollbar-thumb": {
+                        background: "rgba(0,224,255,0.1)",
+                        borderRadius: "2px",
+                    },
+                }}
+            >
                 {loading ? (
-                    <Box sx={{ py: 4, display: "flex", justifyContent: "center" }}>
+                    <Box
+                        sx={{
+                            py: 4,
+                            display: "flex",
+                            justifyContent: "center",
+                        }}
+                    >
                         <CircularProgress size={18} sx={{ color: "#52525b" }} />
                     </Box>
                 ) : notes.length === 0 ? (
-                    <Box sx={{ py: 4, display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
-                        <NoteIcon sx={{ fontSize: "1.4rem", color: "#27272a" }} />
-                        <Typography sx={{ fontFamily: "'DM Sans', sans-serif", fontSize: "0.73rem", color: "#3f3f46" }}>
+                    <Box
+                        sx={{
+                            py: 4,
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: 1,
+                        }}
+                    >
+                        <NoteIcon
+                            sx={{ fontSize: "1.4rem", color: "#27272a" }}
+                        />
+                        <Typography
+                            sx={{
+                                fontFamily: "'DM Sans', sans-serif",
+                                fontSize: "0.73rem",
+                                color: "#3f3f46",
+                            }}
+                        >
                             No notes on this page — click + to add one
                         </Typography>
                     </Box>
                 ) : (
                     notes
-                        .filter((note) => !currentCfi || note.chapter === currentCfi)
+                        .filter(
+                            (note) =>
+                                !currentCfi || note.chapter === currentCfi,
+                        )
                         .map((note) => {
                             const { title, body } = parseNote(note);
                             const isEditing = editingId === note._id;
                             const isCurrentPage = true;
                             return (
-                                <Box key={note._id} sx={{ ...sx.noteCard, ...(isCurrentPage ? sx.noteCardActive : {}) }}>
+                                <Box
+                                    key={note._id}
+                                    sx={{
+                                        ...sx.noteCard,
+                                        ...(isCurrentPage
+                                            ? sx.noteCardActive
+                                            : {}),
+                                    }}
+                                >
                                     {isEditing ? (
-                                        <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
-                                            <TextField value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Title (optional)" fullWidth size="small" variant="outlined" sx={sx.input} inputProps={{ maxLength: 80 }} />
-                                            <TextField value={editBody} onChange={(e) => setEditBody(e.target.value)} multiline minRows={2} maxRows={5} fullWidth size="small" variant="outlined" sx={sx.input} />
-                                            <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end" }}>
-                                                <IconButton size="small" onClick={() => setEditingId(null)} sx={sx.iconBtnGhost}><CloseIcon sx={{ fontSize: "0.8rem" }} /></IconButton>
-                                                <IconButton size="small" onClick={() => handleSaveEdit(note._id)} sx={sx.iconBtnCyan}><CheckIcon sx={{ fontSize: "0.8rem" }} /></IconButton>
+                                        <Box
+                                            sx={{
+                                                display: "flex",
+                                                flexDirection: "column",
+                                                gap: 0.75,
+                                            }}
+                                        >
+                                            <TextField
+                                                value={editTitle}
+                                                onChange={(e) =>
+                                                    setEditTitle(e.target.value)
+                                                }
+                                                placeholder="Title"
+                                                fullWidth
+                                                size="small"
+                                                variant="outlined"
+                                                sx={sx.input}
+                                                inputProps={{ maxLength: 80 }}
+                                            />
+                                            <TextField
+                                                value={editBody}
+                                                onChange={(e) =>
+                                                    setEditBody(e.target.value)
+                                                }
+                                                multiline
+                                                minRows={2}
+                                                maxRows={5}
+                                                fullWidth
+                                                size="small"
+                                                variant="outlined"
+                                                sx={sx.input}
+                                            />
+                                            <Box
+                                                sx={{
+                                                    display: "flex",
+                                                    gap: 1,
+                                                    justifyContent: "flex-end",
+                                                }}
+                                            >
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={() =>
+                                                        setEditingId(null)
+                                                    }
+                                                    sx={sx.iconBtnGhost}
+                                                >
+                                                    <CloseIcon
+                                                        sx={{
+                                                            fontSize: "0.8rem",
+                                                        }}
+                                                    />
+                                                </IconButton>
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={() =>
+                                                        handleSaveEdit(note._id)
+                                                    }
+                                                    sx={sx.iconBtnCyan}
+                                                >
+                                                    <CheckIcon
+                                                        sx={{
+                                                            fontSize: "0.8rem",
+                                                        }}
+                                                    />
+                                                </IconButton>
                                             </Box>
                                         </Box>
                                     ) : (
                                         <>
-                                            <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", mb: 0.5, gap: 1 }}>
-                                                <Box sx={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0, gap: 0.4 }}>
-                                                    {title && <Typography sx={{ fontFamily: "'Syne', sans-serif", fontWeight: 600, fontSize: "0.78rem", color: "#e4e4e8" }}>{title}</Typography>}
+                                            <Box
+                                                sx={{
+                                                    display: "flex",
+                                                    alignItems: "flex-start",
+                                                    justifyContent:
+                                                        "space-between",
+                                                    mb: 0.5,
+                                                    gap: 1,
+                                                }}
+                                            >
+                                                <Box
+                                                    sx={{
+                                                        display: "flex",
+                                                        flexDirection: "column",
+                                                        flex: 1,
+                                                        minWidth: 0,
+                                                        gap: 0.4,
+                                                    }}
+                                                >
+                                                    {title && (
+                                                        <Typography
+                                                            sx={{
+                                                                fontFamily:
+                                                                    "'Syne', sans-serif",
+                                                                fontWeight: 600,
+                                                                fontSize:
+                                                                    "0.78rem",
+                                                                color: "#e4e4e8",
+                                                            }}
+                                                        >
+                                                            {title}
+                                                        </Typography>
+                                                    )}
                                                     {/* currentPageBadge — commented out
                                                 {isCurrentPage && (
                                                     <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.4, background: "rgba(0,224,255,0.08)", border: "1px solid rgba(0,224,255,0.2)", borderRadius: "4px", px: 0.6, py: 0.1, width: "fit-content" }}>
@@ -333,17 +596,84 @@ export default function NotesModal({ bookId, currentCfi, open, onClose, onCountC
                                                 )}
                                                 */}
                                                 </Box>
-                                                <Box sx={{ display: "flex", alignItems: "center", gap: 0.25, flexShrink: 0 }}>
-                                                    <Typography sx={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "0.62rem", color: "#3f3f46", mr: 0.5 }}>{formatDate(note.created_at)}</Typography>
-                                                    <Tooltip title="Edit" placement="top">
-                                                        <IconButton size="small" onClick={() => startEdit(note)} sx={sx.iconBtnGhost}><EditIcon sx={{ fontSize: "0.75rem" }} /></IconButton>
+                                                <Box
+                                                    sx={{
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        gap: 0.25,
+                                                        flexShrink: 0,
+                                                    }}
+                                                >
+                                                    <Typography
+                                                        sx={{
+                                                            fontFamily:
+                                                                "'JetBrains Mono', monospace",
+                                                            fontSize: "0.62rem",
+                                                            color: "#3f3f46",
+                                                            mr: 0.5,
+                                                        }}
+                                                    >
+                                                        {formatDate(
+                                                            note.created_at,
+                                                        )}
+                                                    </Typography>
+                                                    <Tooltip
+                                                        title="Edit"
+                                                        placement="top"
+                                                    >
+                                                        <IconButton
+                                                            size="small"
+                                                            onClick={() =>
+                                                                startEdit(note)
+                                                            }
+                                                            sx={sx.iconBtnGhost}
+                                                        >
+                                                            <EditIcon
+                                                                sx={{
+                                                                    fontSize:
+                                                                        "0.75rem",
+                                                                }}
+                                                            />
+                                                        </IconButton>
                                                     </Tooltip>
-                                                    <Tooltip title="Delete" placement="top">
-                                                        <IconButton size="small" onClick={() => handleDelete(note._id)} sx={sx.iconBtnRed}><DeleteIcon sx={{ fontSize: "0.75rem" }} /></IconButton>
+                                                    <Tooltip
+                                                        title="Delete"
+                                                        placement="top"
+                                                    >
+                                                        <IconButton
+                                                            size="small"
+                                                            onClick={() =>
+                                                                handleDelete(
+                                                                    note._id,
+                                                                )
+                                                            }
+                                                            sx={sx.iconBtnRed}
+                                                        >
+                                                            <DeleteIcon
+                                                                sx={{
+                                                                    fontSize:
+                                                                        "0.75rem",
+                                                                }}
+                                                            />
+                                                        </IconButton>
                                                     </Tooltip>
                                                 </Box>
                                             </Box>
-                                            <Typography sx={{ fontFamily: "'DM Sans', sans-serif", fontSize: "0.76rem", color: isCurrentPage ? "#c8c8d0" : "#71717a", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>{body}</Typography>
+                                            <Typography
+                                                sx={{
+                                                    fontFamily:
+                                                        "'DM Sans', sans-serif",
+                                                    fontSize: "0.76rem",
+                                                    color: isCurrentPage
+                                                        ? "#c8c8d0"
+                                                        : "#71717a",
+                                                    lineHeight: 1.6,
+                                                    whiteSpace: "pre-wrap",
+                                                    wordBreak: "break-word",
+                                                }}
+                                            >
+                                                {body}
+                                            </Typography>
                                         </>
                                     )}
                                 </Box>
@@ -364,7 +694,10 @@ const sx = {
             background: "rgba(255,255,255,0.02)",
             "& fieldset": { borderColor: "rgba(0,224,255,0.12)" },
             "&:hover fieldset": { borderColor: "rgba(0,224,255,0.25)" },
-            "&.Mui-focused fieldset": { borderColor: "rgba(0,224,255,0.45)", borderWidth: "1px" },
+            "&.Mui-focused fieldset": {
+                borderColor: "rgba(0,224,255,0.45)",
+                borderWidth: "1px",
+            },
         },
         "& .MuiInputBase-input::placeholder": { color: "#3f3f46", opacity: 1 },
     },
@@ -383,7 +716,10 @@ const sx = {
         display: "flex",
         alignItems: "center",
         gap: 0.5,
-        "&:hover:not(:disabled)": { background: "#33e8ff", boxShadow: "0 0 12px rgba(0,224,255,0.3)" },
+        "&:hover:not(:disabled)": {
+            background: "#33e8ff",
+            boxShadow: "0 0 12px rgba(0,224,255,0.3)",
+        },
         "&:disabled": { opacity: 0.35, cursor: "not-allowed" },
     },
     noteCard: {
@@ -402,20 +738,26 @@ const sx = {
     },
     iconBtnGhost: {
         color: "#52525b",
-        width: 24, height: 24,
+        width: 24,
+        height: 24,
         borderRadius: "6px",
         "&:hover": { color: "#a1a1aa", background: "rgba(255,255,255,0.05)" },
     },
     iconBtnCyan: {
         color: "#00e0ff",
-        width: 24, height: 24,
+        width: 24,
+        height: 24,
         borderRadius: "6px",
         border: "1px solid rgba(0,224,255,0.25)",
-        "&:hover": { background: "rgba(0,224,255,0.1)", borderColor: "rgba(0,224,255,0.5)" },
+        "&:hover": {
+            background: "rgba(0,224,255,0.1)",
+            borderColor: "rgba(0,224,255,0.5)",
+        },
     },
     iconBtnRed: {
         color: "#52525b",
-        width: 24, height: 24,
+        width: 24,
+        height: 24,
         borderRadius: "6px",
         "&:hover": { color: "#ff6b6b", background: "rgba(255,107,107,0.06)" },
     },

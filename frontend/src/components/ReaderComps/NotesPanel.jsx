@@ -18,7 +18,6 @@ import {
 import { useEffect, useState, useCallback } from "react";
 import api from "../../api/axios.js";
 
-
 export default function NotesPanel({ bookId, currentCfi, onCountChange }) {
     const [notes, setNotes] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -29,7 +28,6 @@ export default function NotesPanel({ bookId, currentCfi, onCountChange }) {
     const [editingId, setEditingId] = useState(null);
     const [editBody, setEditBody] = useState("");
     const [editTitle, setEditTitle] = useState("");
-
 
     useEffect(() => {
         onCountChange?.(notes.length, notes);
@@ -50,7 +48,6 @@ export default function NotesPanel({ bookId, currentCfi, onCountChange }) {
     useEffect(() => {
         if (bookId) fetchNotes();
     }, [bookId, fetchNotes]);
-
 
     const handleCreate = async () => {
         if (!draftBody.trim()) return;
@@ -75,7 +72,6 @@ export default function NotesPanel({ bookId, currentCfi, onCountChange }) {
         }
     };
 
-
     const startEdit = (note) => {
         setEditingId(note._id);
 
@@ -90,7 +86,7 @@ export default function NotesPanel({ bookId, currentCfi, onCountChange }) {
     };
 
     const handleSaveEdit = async (id) => {
-        if (!editBody.trim()) return;
+        if (!editBody.trim() || !editTitle.trim()) return;
         try {
             await api.patch(`/annotation/single/${id}`, {
                 note_text: editTitle.trim()
@@ -113,7 +109,6 @@ export default function NotesPanel({ bookId, currentCfi, onCountChange }) {
         }
     };
 
-
     const parseNote = (note) => {
         const match = note.note_text?.match(/^\[(.+?)\]\n([\s\S]*)$/);
         if (match) return { title: match[1], body: match[2] };
@@ -125,7 +120,6 @@ export default function NotesPanel({ bookId, currentCfi, onCountChange }) {
             month: "short",
             day: "numeric",
         });
-
 
     return (
         <Box sx={sx.container}>
@@ -154,10 +148,14 @@ export default function NotesPanel({ bookId, currentCfi, onCountChange }) {
             </Box>
 
             {/* Compose form */}
-            <Collapse in={composing} unmountOnExit>
+            <Collapse
+                in={composing}
+                unmountOnExit
+                sx={{ flexShrink: 0, overflow: "hidden" }}
+            >
                 <Box sx={sx.composeBox}>
                     <TextField
-                        placeholder="Note title (optional)"
+                        placeholder="Note title"
                         value={draftTitle}
                         onChange={(e) => setDraftTitle(e.target.value)}
                         fullWidth
@@ -202,19 +200,14 @@ export default function NotesPanel({ bookId, currentCfi, onCountChange }) {
             <Box sx={sx.list}>
                 {loading ? (
                     <Box sx={sx.emptyState}>
-                        <CircularProgress
-                            size={18}
-                            sx={{ color: "#52525b" }}
-                        />
+                        <CircularProgress size={18} sx={{ color: "#52525b" }} />
                     </Box>
                 ) : notes.length === 0 ? (
                     <Box sx={sx.emptyState}>
                         <NoteIcon
                             sx={{ fontSize: "1.6rem", color: "#27272a" }}
                         />
-                        <Typography sx={sx.emptyText}>
-                            No notes yet
-                        </Typography>
+                        <Typography sx={sx.emptyText}>No notes yet</Typography>
                     </Box>
                 ) : (
                     notes.map((note) => {
@@ -231,7 +224,7 @@ export default function NotesPanel({ bookId, currentCfi, onCountChange }) {
                                             onChange={(e) =>
                                                 setEditTitle(e.target.value)
                                             }
-                                            placeholder="Title (optional)"
+                                            placeholder="Title"
                                             fullWidth
                                             size="small"
                                             variant="outlined"
@@ -293,7 +286,9 @@ export default function NotesPanel({ bookId, currentCfi, onCountChange }) {
                                             )}
                                             <Box sx={sx.noteActions}>
                                                 <Typography sx={sx.noteDate}>
-                                                    {formatDate(note.created_at)}
+                                                    {formatDate(
+                                                        note.created_at,
+                                                    )}
                                                 </Typography>
                                                 <Tooltip
                                                     title="Edit"
