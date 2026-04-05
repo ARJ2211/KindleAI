@@ -1,5 +1,11 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { Box, Typography, IconButton, CircularProgress, Tooltip } from "@mui/material";
+import {
+    Box,
+    Typography,
+    IconButton,
+    CircularProgress,
+    Tooltip,
+} from "@mui/material";
 import { ReactReader } from "react-reader";
 import api from "../api/axios.js";
 
@@ -79,7 +85,7 @@ export default function ReaderPage() {
                 setNotesList(list);
                 setNoteCount(list.length);
             })
-            .catch(() => { });
+            .catch(() => {});
     }, [bookId, currentCfi]);
 
     // Fetch notes once after epub is fully settled (handles resume case where
@@ -92,7 +98,7 @@ export default function ReaderPage() {
                 setNotesList(list);
                 setNoteCount(list.length);
             })
-            .catch(() => { });
+            .catch(() => {});
     }, [bookId, settled]);
 
     useEffect(() => {
@@ -157,8 +163,8 @@ export default function ReaderPage() {
         const percent = atEnd
             ? 100
             : pct != null && !isNaN(pct)
-                ? Math.round(pct * 10000) / 100
-                : 0;
+              ? Math.round(pct * 10000) / 100
+              : 0;
 
         console.log("[reader] Page changed:", cfi, `(${percent}%)`);
 
@@ -198,8 +204,6 @@ export default function ReaderPage() {
                         setSettled(true);
                         settledRef.current = true;
                         console.log("[reader] Settled, saves enabled");
-
-
                     }, 800);
                 });
         },
@@ -246,7 +250,9 @@ export default function ReaderPage() {
         return <ReaderLoader message={error} />;
     }
 
-    const currentPageHasNotes = notesList.some((n) => n.chapter === (currentCfi || savedCfi));
+    const currentPageHasNotes = notesList.some(
+        (n) => n.chapter === (currentCfi || savedCfi),
+    );
 
     return (
         <Box sx={sx.page}>
@@ -273,15 +279,40 @@ export default function ReaderPage() {
 
                 {/* Notes dot — right side of topBar */}
                 <Tooltip
-                    title={currentPageHasNotes ? "Notes on this page" : "No notes on this page"}
+                    title={
+                        currentPageHasNotes
+                            ? "Notes on this page"
+                            : "No notes on this page"
+                    }
                     placement="bottom"
                 >
-                    <Box sx={sx.notesDot} onClick={() => setNotesOpen((p) => !p)}>
-                        <Typography sx={{ fontFamily: "'DM Sans', sans-serif", fontSize: "0.68rem", color: currentPageHasNotes ? "#4ade80" : "#ff6b6b", lineHeight: 1 }}>
+                    <Box
+                        sx={sx.notesDot}
+                        onClick={() => setNotesOpen((p) => !p)}
+                    >
+                        <Typography
+                            sx={{
+                                fontFamily: "'DM Sans', sans-serif",
+                                fontSize: "0.68rem",
+                                color: currentPageHasNotes
+                                    ? "#4ade80"
+                                    : "#ff6b6b",
+                                lineHeight: 1,
+                            }}
+                        >
                             Notes
                         </Typography>
-                        <Box sx={currentPageHasNotes ? sx.dotGreen : sx.dotRed} />
-                        <NoteIcon sx={{ fontSize: "0.7rem", color: currentPageHasNotes ? "#4ade80" : "#ff6b6b" }} />
+                        <Box
+                            sx={currentPageHasNotes ? sx.dotGreen : sx.dotRed}
+                        />
+                        <NoteIcon
+                            sx={{
+                                fontSize: "0.7rem",
+                                color: currentPageHasNotes
+                                    ? "#4ade80"
+                                    : "#ff6b6b",
+                            }}
+                        />
                     </Box>
                 </Tooltip>
             </Box>
@@ -331,6 +362,7 @@ export default function ReaderPage() {
                 open={notesOpen}
                 onClose={() => setNotesOpen(false)}
                 onCountChange={handleCountChange}
+                onNavigate={(cfi) => renditionRef.current?.display(cfi)}
             />
         </Box>
     );

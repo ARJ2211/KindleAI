@@ -17,6 +17,8 @@ import {
     StickyNote2Outlined as NoteIcon,
     DragIndicator as DragIcon,
     OpacityOutlined as OpacityIcon,
+    FormatListBulleted as FormatListBulletedIcon,
+    Search as SearchIcon,
 } from "@mui/icons-material";
 import { useEffect, useState, useCallback, useRef } from "react";
 import api from "../../api/axios.js";
@@ -27,6 +29,7 @@ export default function NotesModal({
     open,
     onClose,
     onCountChange,
+    onNavigate, // Added so user can click on a note and go to that page
 }) {
     const [notes, setNotes] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -39,6 +42,9 @@ export default function NotesModal({
     const [editTitle, setEditTitle] = useState("");
     const [opacity, setOpacity] = useState(0.96);
     const [showOpacity, setShowOpacity] = useState(false);
+
+    const [showAll, setShowAll] = useState(false);
+    const [search, setSearch] = useState("");
 
     const [pos, setPos] = useState({ x: 80, y: 80 });
     const dragging = useRef(false);
@@ -235,6 +241,30 @@ export default function NotesModal({
                     </Box>
                 )}
 
+                {/* Show all notes */}
+                <Tooltip
+                    title={showAll ? "Current page only" : "Show all notes"}
+                    placement="top"
+                >
+                    <IconButton
+                        size="small"
+                        onClick={() => setShowAll((p) => !p)}
+                        sx={{
+                            color: showAll ? "#00e0ff" : "#52525b",
+                            border: "1px solid rgba(0,224,255,0.15)",
+                            borderRadius: "6px",
+                            width: 24,
+                            height: 24,
+                            "&:hover": {
+                                color: "#00e0ff",
+                                background: "rgba(0,224,255,0.08)",
+                            },
+                        }}
+                    >
+                        <FormatListBulletedIcon sx={{ fontSize: "0.8rem" }} />
+                    </IconButton>
+                </Tooltip>
+
                 {/* Opacity toggle */}
                 <Tooltip title="Opacity" placement="top">
                     <IconButton
@@ -396,7 +426,8 @@ export default function NotesModal({
                             disabled={
                                 saving ||
                                 !draftBody.trim() ||
-                                !draftTitle.trim()
+                                !draftTitle.trim() ||
+                                !currentCfi // WAIT FOR CFI ENGINE TO GIVE THE CFI!!!!
                             }
                             sx={sx.saveBtn}
                         >
@@ -410,6 +441,55 @@ export default function NotesModal({
                             )}
                         </Box>
                     </Box>
+                </Box>
+            </Collapse>
+
+            {/* Search bar*/}
+            <Collapse
+                in={showAll || notes.length > 3}
+                unmountOnExit
+                sx={{ flexShrink: 0, overflow: "hidden" }}
+            >
+                <Box
+                    sx={{
+                        px: 1.5,
+                        py: 0.75,
+                        borderBottom: "1px solid rgba(0,224,255,0.06)",
+                    }}
+                >
+                    <TextField
+                        placeholder="Search notes…"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        fullWidth
+                        size="small"
+                        variant="outlined"
+                        sx={sx.input}
+                        slotProps={{
+                            input: {
+                                startAdornment: (
+                                    <SearchIcon
+                                        sx={{
+                                            fontSize: "0.85rem",
+                                            color: "#3f3f46",
+                                            mr: 0.5,
+                                        }}
+                                    />
+                                ),
+                                endAdornment: search ? (
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => setSearch("")}
+                                        sx={{ color: "#52525b", p: 0.25 }}
+                                    >
+                                        <CloseIcon
+                                            sx={{ fontSize: "0.75rem" }}
+                                        />
+                                    </IconButton>
+                                ) : null,
+                            },
+                        }}
+                    />
                 </Box>
             </Collapse>
 
@@ -468,24 +548,41 @@ export default function NotesModal({
                     notes
                         .filter(
                             (note) =>
-                                !currentCfi || note.chapter === currentCfi,
+                                showAll ||
+                                !currentCfi ||
+                                note.chapter === currentCfi,
+                        )
+                        .filter(
+                            (note) =>
+                                !search.trim() ||
+                                note.note_text
+                                    ?.toLowerCase()
+                                    .includes(search.toLowerCase()),
                         )
                         .map((note) => {
                             const { title, body } = parseNote(note);
                             const isEditing = editingId === note._id;
-                            const isCurrentPage = true;
+                            const isCurrentPage = note.chapter === currentCfi;
                             return (
                                 <Box
                                     key={note._id}
+                                    onClick={() =>
+                                        !isCurrentPage &&
+                                        onNavigate?.(note.chapter)
+                                    }
                                     sx={{
                                         ...sx.noteCard,
                                         ...(isCurrentPage
                                             ? sx.noteCardActive
-                                            : {}),
+                                            : sx.noteCardOther),
+                                        ...(!isCurrentPage && {
+                                            cursor: "pointer",
+                                        }),
                                     }}
                                 >
                                     {isEditing ? (
                                         <Box
+                                            onClick={(e) => e.stopPropagation()}
                                             sx={{
                                                 display: "flex",
                                                 flexDirection: "column",
@@ -587,6 +684,23 @@ export default function NotesModal({
                                                             {title}
                                                         </Typography>
                                                     )}
+                                                    {!isCurrentPage && (
+                                                        <Typography
+                                                            sx={{
+                                                                fontFamily:
+                                                                    "'JetBrains Mono', monospace",
+                                                                fontSize:
+                                                                    "0.58rem",
+                                                                color: "#52525b",
+                                                                mt: 0.25,
+                                                            }}
+                                                        >
+                                                            {note.chapter ===
+                                                            "unknown"
+                                                                ? "x page unknown"
+                                                                : "o different page"}
+                                                        </Typography>
+                                                    )}
                                                     {/* currentPageBadge — commented out
                                                 {isCurrentPage && (
                                                     <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.4, background: "rgba(0,224,255,0.08)", border: "1px solid rgba(0,224,255,0.2)", borderRadius: "4px", px: 0.6, py: 0.1, width: "fit-content" }}>
@@ -617,46 +731,62 @@ export default function NotesModal({
                                                             note.created_at,
                                                         )}
                                                     </Typography>
-                                                    <Tooltip
-                                                        title="Edit"
-                                                        placement="top"
-                                                    >
-                                                        <IconButton
-                                                            size="small"
-                                                            onClick={() =>
-                                                                startEdit(note)
-                                                            }
-                                                            sx={sx.iconBtnGhost}
+                                                    {isCurrentPage && (
+                                                        <Tooltip
+                                                            title="Edit"
+                                                            placement="top"
                                                         >
-                                                            <EditIcon
-                                                                sx={{
-                                                                    fontSize:
-                                                                        "0.75rem",
+                                                            <IconButton
+                                                                size="small"
+                                                                onClick={(
+                                                                    e,
+                                                                ) => {
+                                                                    e.stopPropagation();
+                                                                    startEdit(
+                                                                        note,
+                                                                    );
                                                                 }}
-                                                            />
-                                                        </IconButton>
-                                                    </Tooltip>
-                                                    <Tooltip
-                                                        title="Delete"
-                                                        placement="top"
-                                                    >
-                                                        <IconButton
-                                                            size="small"
-                                                            onClick={() =>
-                                                                handleDelete(
-                                                                    note._id,
-                                                                )
-                                                            }
-                                                            sx={sx.iconBtnRed}
+                                                                sx={
+                                                                    sx.iconBtnGhost
+                                                                }
+                                                            >
+                                                                <EditIcon
+                                                                    sx={{
+                                                                        fontSize:
+                                                                            "0.75rem",
+                                                                    }}
+                                                                />
+                                                            </IconButton>
+                                                        </Tooltip>
+                                                    )}
+                                                    {isCurrentPage && (
+                                                        <Tooltip
+                                                            title="Delete"
+                                                            placement="top"
                                                         >
-                                                            <DeleteIcon
-                                                                sx={{
-                                                                    fontSize:
-                                                                        "0.75rem",
+                                                            <IconButton
+                                                                size="small"
+                                                                onClick={(
+                                                                    e,
+                                                                ) => {
+                                                                    e.stopPropagation();
+                                                                    handleDelete(
+                                                                        note._id,
+                                                                    );
                                                                 }}
-                                                            />
-                                                        </IconButton>
-                                                    </Tooltip>
+                                                                sx={
+                                                                    sx.iconBtnRed
+                                                                }
+                                                            >
+                                                                <DeleteIcon
+                                                                    sx={{
+                                                                        fontSize:
+                                                                            "0.75rem",
+                                                                    }}
+                                                                />
+                                                            </IconButton>
+                                                        </Tooltip>
+                                                    )}
                                                 </Box>
                                             </Box>
                                             <Typography
@@ -731,6 +861,17 @@ const sx = {
         transition: "border-color 0.2s",
         "&:hover": { borderColor: "rgba(0,224,255,0.14)" },
     },
+    noteCardOther: {
+        background: "rgba(255,255,255,0.01)",
+        border: "1px solid rgba(255,255,255,0.05)",
+        opacity: 0.6,
+        "&:hover": {
+            opacity: 1,
+            borderColor: "rgba(0,224,255,0.2)",
+            background: "rgba(0,224,255,0.02)",
+        },
+    },
+
     noteCardActive: {
         background: "rgba(0,224,255,0.04)",
         border: "1px solid rgba(0,224,255,0.2)",

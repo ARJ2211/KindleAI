@@ -50,7 +50,7 @@ export default function NotesPanel({ bookId, currentCfi, onCountChange }) {
     }, [bookId, fetchNotes]);
 
     const handleCreate = async () => {
-        if (!draftBody.trim()) return;
+        if (!editBody.trim() || !editTitle.trim()) return;
         setSaving(true);
         try {
             await api.post(`/annotation/${bookId}`, {
