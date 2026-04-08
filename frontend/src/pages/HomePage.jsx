@@ -38,7 +38,6 @@ export default function HomePage() {
                 severity: res.data.deduplicated ? "warning" : "success",
             });
 
-            // Refresh library after successful upload
             if (!res.data.deduplicated) {
                 setRefreshKey((prev) => prev + 1);
             }
@@ -67,11 +66,8 @@ export default function HomePage() {
             case "My Books":
                 return <MyBooks onAlert={setAlert} />;
             case "Bookmarks":
-                return (
-                    <Typography sx={{ color: "#52525b" }}>
-                        Bookmarks — coming soon
-                    </Typography>
-                );
+                
+                return null;
             default:
                 return null;
         }

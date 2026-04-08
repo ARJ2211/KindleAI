@@ -5,6 +5,7 @@ import { verifyToken } from "../middleware/auth.js";
 import * as redis from "../config/redisClient.js";
 import * as helper from "../helper.js";
 import * as userData from "../data/userData.js";
+import * as bookData from "../data/bookData.js";
 import { verify } from "node:crypto";
 
 const router = Router();
@@ -101,6 +102,70 @@ router.patch("/preferences", verifyToken, async (req, res) => {
         await redis.setCache(`user:${uid}`, updated);
 
         return res.status(200).json(updated);
+    } catch (e) {
+        return res.status(e.status || 500).json({
+            msg: e.msg || "Internal server error",
+        });
+    }
+});
+
+// Add for user's my book
+router.post("/my-books/:bookId", verifyToken, async (req, res) => {
+    try {
+        const uid = req.user.uid;
+        const bookId = helper.isValidString(req.params.bookId);
+
+        // User book must be in global library
+        await bookData.getBookById(bookId);
+
+        const updated = await userData.addToMyBooks(uid, bookId);
+
+        // Invalidate user cache
+        await redis.delCache(`user:${uid}`).catch(() => {});
+
+        return res.status(200).json({ my_books: updated.my_books || [] });
+    } catch (e) {
+        return res.status(e.status || 500).json({
+            msg: e.msg || "Internal server error",
+        });
+    }
+});
+
+// Get all books at user's mybook
+router.get("/my-books", verifyToken, async (req, res) => {
+    try {
+        const uid = req.user.uid;
+
+        const bookIds = await userData.getMyBookIds(uid);
+
+        if (bookIds.length === 0) return res.status(200).json([]);
+
+        // Fetch full book documents for each id
+        const bookPromises = bookIds.map((id) =>
+            bookData.getBookById(id).catch(() => null),
+        );
+        const books = (await Promise.all(bookPromises)).filter(Boolean);
+
+        return res.status(200).json(books);
+    } catch (e) {
+        return res.status(e.status || 500).json({
+            msg: e.msg || "Internal server error",
+        });
+    }
+});
+
+// Remove a book from user's personal library
+router.delete("/my-books/:bookId", verifyToken, async (req, res) => {
+    try {
+        const uid = req.user.uid;
+        const bookId = helper.isValidString(req.params.bookId);
+
+        const updated = await userData.removeFromMyBooks(uid, bookId);
+
+        // Invalidate user cache
+        await redis.delCache(`user:${uid}`).catch(() => {});
+
+        return res.status(200).json({ my_books: updated.my_books || [] });
     } catch (e) {
         return res.status(e.status || 500).json({
             msg: e.msg || "Internal server error",
