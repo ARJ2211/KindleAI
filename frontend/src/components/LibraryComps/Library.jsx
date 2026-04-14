@@ -15,6 +15,8 @@ export default function Library({ onUpload, uploading, onAlert }) {
         ttsReady: false,
     });
 
+    const [myBookIds, setMyBookIds] = useState(new Set());
+
     const fetchLibrary = async () => {
         try {
             const res = await api.get("/book/library");
@@ -26,8 +28,19 @@ export default function Library({ onUpload, uploading, onAlert }) {
         }
     };
 
+    const fetchMyBooks = async () =>{
+        try {
+            const res = await api.get("/library");
+            const ids = new Set(res.data.map((b) => b._id));
+            setMyBookIds(ids)
+        } catch (error) {
+            setError(error.message)
+        }
+    }
+
     useEffect(() => {
         fetchLibrary();
+        fetchMyBooks();
     }, []);
 
     const handleDelete = async (book) => {
@@ -131,6 +144,7 @@ export default function Library({ onUpload, uploading, onAlert }) {
                             onDelete={handleDelete}
                             onAdd={handleAdd}
                             onAlert={onAlert}
+                            isInMyBooks={myBookIds.has(book._id)}
                         />
                     ))}
                 </Box>

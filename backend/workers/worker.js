@@ -33,20 +33,21 @@ const spawnWorker = (workerFile, data, onComplete, onProgress) => {
     });
 };
 
-// Queue to ensure only one ingest worker runs at a time, preventing OOM from
-// loading the ~500MB embedding model concurrently across multiple worker threads.
+// Queue to cap concurrent ingest workers at 3, preventing OOM from loading the
+// ~500MB embedding model across too many worker threads simultaneously.
 const ingestQueue = [];
-let ingestRunning = false;
+let ingestActiveCount = 0;
+const INGEST_CONCURRENCY = 3;
 
 const runNextIngest = () => {
-    if (ingestRunning || ingestQueue.length === 0) return;
-    ingestRunning = true;
+    if (ingestActiveCount >= INGEST_CONCURRENCY || ingestQueue.length === 0) return;
+    ingestActiveCount++;
     const { epubPath, bookId, onComplete, onProgress } = ingestQueue.shift();
     spawnWorker(
         "ingest.worker.js",
         { epubPath, bookId },
         (err, result) => {
-            ingestRunning = false;
+            ingestActiveCount--;
             onComplete(err, result);
             runNextIngest();
         },
