@@ -2,7 +2,9 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase/config.js";
-import { Box, TextField, Button, Typography, Alert } from "@mui/material";
+import { Box, TextField, Button, Typography, Alert, IconButton, InputAdornment } from "@mui/material";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
 
 export default function SignInPage() {
     const navigate = useNavigate();
@@ -11,6 +13,7 @@ export default function SignInPage() {
     const [password, setPassword] = useState("");
     const [error, setError] = useState(null);
     const [submitting, setSubmitting] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -61,13 +64,28 @@ export default function SignInPage() {
                     <TextField
                         fullWidth
                         label="Password"
-                        type="password"
+                        type={showPassword ? "text" : "password"}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
                         variant="outlined"
                         sx={styles.input}
                         autoComplete="off"
+                        slotProps={{
+                            input: {
+                                endAdornment:(
+                                    <InputAdornment position="end">
+                                        <IconButton onClick={() => setShowPassword((p) => !p)} edge="end" sx={styles.eyeBtn} >
+                                            {showPassword? (
+                                                <VisibilityOffOutlinedIcon sx={{fontSize: 18}} />
+                                            ) : (
+                                                <VisibilityOutlinedIcon sx={{fontSize: 18}} />
+                                            )}
+                                        </IconButton>
+                                    </InputAdornment>
+                                )
+                            }
+                        }}
                     />
 
                     {error && (
@@ -263,5 +281,12 @@ const styles = {
         textDecoration: "none",
         fontWeight: 500,
         fontFamily: "'Syne', sans-serif",
+    },
+    eyeBtn: {
+        color: "#52525b",
+        "&:hover": {
+            color: "#a1a1aa",
+            background: "rgba(255,255,255,0.04)",
+        },
     },
 };
