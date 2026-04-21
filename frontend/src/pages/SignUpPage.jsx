@@ -2,7 +2,9 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase/config.js";
-import { Box, TextField, Button, Typography, Alert } from "@mui/material";
+import { Box, TextField, Button, Typography, Alert, IconButton, InputAdornment } from "@mui/material";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
 import axios from "axios";
 
 const API = "http://localhost:3000";
@@ -17,6 +19,8 @@ export default function SignUpPage() {
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
     const [submitting, setSubmitting] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -46,6 +50,23 @@ export default function SignUpPage() {
             setSubmitting(false);
         }
     };
+    const passwordAdornment = (visible, setVisible) => ({
+        endAdornment: (
+            <InputAdornment position="end">
+                <IconButton
+                    onClick={() => setVisible((p) => !p)}
+                    edge="end"
+                    sx={styles.eyeBtn}
+                >
+                    {visible ? (
+                        <VisibilityOffOutlinedIcon sx={{ fontSize: 18 }} />
+                    ) : (
+                        <VisibilityOutlinedIcon sx={{ fontSize: 18 }} />
+                    )}
+                </IconButton>
+            </InputAdornment>
+        ),
+    });
 
     return (
         <Box sx={styles.page}>
@@ -92,25 +113,37 @@ export default function SignUpPage() {
                     <TextField
                         fullWidth
                         label="Password"
-                        type="password"
+                        type={showPassword ? "text" : "password"}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
                         variant="outlined"
                         sx={styles.input}
                         autoComplete="off"
+                        slotProps={{
+                            input: passwordAdornment(
+                                showPassword,
+                                setShowPassword,
+                            ),
+                        }}
                     />
 
                     <TextField
                         fullWidth
                         label="Confirm Password"
-                        type="password"
+                        type={showConfirmPassword ? "text" : "password"}
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         required
                         variant="outlined"
                         sx={styles.input}
                         autoComplete="off"
+                        slotProps={{
+                            input: passwordAdornment(
+                                showConfirmPassword,
+                                setShowConfirmPassword,
+                            ),
+                        }}
                     />
 
                     {error && (
@@ -294,6 +327,13 @@ const styles = {
         color: "#00e0ff",
         "& .MuiAlert-icon": {
             color: "#00e0ff",
+        },
+    },
+    eyeBtn: {
+        color: "#52525b",
+        "&:hover": {
+            color: "#a1a1aa",
+            background: "rgba(255,255,255,0.04)",
         },
     },
 };

@@ -9,6 +9,7 @@ import Navbar from "../components/NavBar.jsx";
 
 import api from "../api/axios.js";
 import "../css/LandingPage.css";
+import MyReading from "../components/MyReadingComps/MyReading.jsx";
 
 export default function HomePage() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -66,12 +67,8 @@ export default function HomePage() {
                 );
             case "My Books":
                 return <MyBooks onAlert={setAlert} />;
-            case "Bookmarks":
-                return (
-                    <Typography sx={{ color: "#52525b" }}>
-                        Bookmarks — coming soon
-                    </Typography>
-                );
+            case "My Reading":
+                return <MyReading onAlert={setAlert} />
             default:
                 return null;
         }

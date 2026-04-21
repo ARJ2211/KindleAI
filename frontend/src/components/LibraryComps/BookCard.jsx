@@ -9,10 +9,11 @@ import {
 import AutoStoriesIcon from "@mui/icons-material/AutoStories";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AddIcon from "@mui/icons-material/Add";
-
+import CheckIcon from "@mui/icons-material/Check";
+ 
 import BookDetailModal from "./BookDetailModal";
 import { useSocket } from "../../context/SocketContext.jsx";
-
+ 
 const DefaultCover = ({ title }) => (
     <Box
         sx={{
@@ -46,7 +47,7 @@ const DefaultCover = ({ title }) => (
         </Typography>
     </Box>
 );
-
+ 
 const StatusChip = ({ ready, label }) => (
     <Box sx={{ display: "flex", alignItems: "center", gap: 0.8 }}>
         <Box
@@ -73,7 +74,7 @@ const StatusChip = ({ ready, label }) => (
         </Typography>
     </Box>
 );
-
+ 
 const STAGE_LABELS = {
     parsing: "Parsing...",
     chunking: "Chunking...",
@@ -82,12 +83,12 @@ const STAGE_LABELS = {
     complete: "AI Ready!",
     error: "Failed",
 };
-
-export default function BookCard({ book, onDelete, onAdd, onAlert }) {
+ 
+export default function BookCard({ book, onDelete, onAdd, onAlert, isInMyBooks }) {
     const [imgError, setImgError] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
     const hasCover = book.cover_asset_key && !imgError;
-
+ 
     const { ingestMap } = useSocket();
     const ingestProgress = ingestMap[book._id] || null;
     // Only show progress if it's for THIS book and not done yet
@@ -98,23 +99,33 @@ export default function BookCard({ book, onDelete, onAdd, onAlert }) {
         ingestProgress.stage !== "error";
     const justFinished = isThisBook && ingestProgress.stage === "complete";
     const failed = isThisBook && ingestProgress.stage === "error";
-
+ 
     return (
         <>
             <Box sx={styles.card} onClick={() => setModalOpen(true)}>
                 <Box sx={styles.glowTrack} className="glow-track" />
-
+ 
                 <Box sx={styles.actions} className="card-actions">
-                    <Tooltip title="Add to My Books">
+                    <Tooltip
+                        title={
+                            isInMyBooks
+                                ? "Already in My Books"
+                                : "Add to My Books"
+                        }
+                    >
                         <IconButton
                             size="small"
                             onClick={(e) => {
                                 e.stopPropagation();
                                 onAdd(book);
                             }}
-                            sx={styles.addBtn}
+                            sx={isInMyBooks ? styles.addedBtn : styles.addBtn}
                         >
-                            <AddIcon sx={{ fontSize: 16 }} />
+                            {isInMyBooks ? (
+                                <CheckIcon sx={{ fontSize: 16 }} />
+                            ) : (
+                                <AddIcon sx={{ fontSize: 16 }} />
+                            )}
                         </IconButton>
                     </Tooltip>
                     <Tooltip title="Delete from library">
@@ -130,7 +141,7 @@ export default function BookCard({ book, onDelete, onAdd, onAlert }) {
                         </IconButton>
                     </Tooltip>
                 </Box>
-
+ 
                 {hasCover ? (
                     <img
                         src={book.cover_asset_key}
@@ -141,39 +152,35 @@ export default function BookCard({ book, onDelete, onAdd, onAlert }) {
                 ) : (
                     <DefaultCover title={book.title} />
                 )}
-
+ 
                 <Box sx={styles.info}>
                     <Typography sx={styles.title}>{book.title}</Typography>
                     <Typography sx={styles.author}>{book.author}</Typography>
-
-                    {/* Ingest progress bar */}
-                    {isActive && (
+ 
+                    {isActive ? (
                         <Box sx={styles.progressContainer}>
                             <Box sx={styles.progressHeader}>
                                 <Typography sx={styles.progressLabel}>
-                                    {STAGE_LABELS[ingestProgress.stage]}
+                                    {STAGE_LABELS[ingestProgress.stage] ||
+                                        ingestProgress.stage}
                                 </Typography>
                                 <Typography sx={styles.progressPercent}>
-                                    {ingestProgress.percent}%
+                                    {ingestProgress.percent || 0}%
                                 </Typography>
                             </Box>
                             <LinearProgress
-                                variant={
-                                    ingestProgress.stage === "parsing"
-                                        ? "indeterminate"
-                                        : "determinate"
-                                }
-                                value={ingestProgress.percent}
+                                variant="determinate"
+                                value={ingestProgress.percent || 0}
                                 sx={styles.progressBar}
                             />
                         </Box>
-                    )}
-
-                    {/* Normal status chips (when not actively ingesting) */}
-                    {!isActive && (
+                    ) : (
                         <Box sx={styles.statusRow}>
                             <StatusChip
-                                ready={book.embedding_ready || justFinished}
+                                ready={
+                                    !failed &&
+                                    (book.embedding_ready || justFinished)
+                                }
                                 label={
                                     failed
                                         ? "Index Failed"
@@ -207,7 +214,7 @@ export default function BookCard({ book, onDelete, onAdd, onAlert }) {
         </>
     );
 }
-
+ 
 const styles = {
     card: {
         position: "relative",
@@ -261,6 +268,15 @@ const styles = {
         border: "1px solid rgba(0, 224, 255, 0.2)",
         "&:hover": {
             background: "rgba(0, 224, 255, 0.25)",
+        },
+    },
+    addedBtn: {
+        background: "rgba(74, 222, 128, 0.15)",
+        backdropFilter: "blur(8px)",
+        color: "#4ade80",
+        border: "1px solid rgba(74, 222, 128, 0.25)",
+        "&:hover": {
+            background: "rgba(74, 222, 128, 0.25)",
         },
     },
     deleteBtn: {

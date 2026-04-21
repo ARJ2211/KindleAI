@@ -9,7 +9,7 @@ export default function Navbar({ activeTab, onTabChange }) {
     const location = useLocation();
     const isLanding = location.pathname === "/";
 
-    const APP_TABS = ["Global Library", "My Books", "Bookmarks"];
+    const APP_TABS = ["Global Library", "My Books", "My Reading"];
 
     return (
         <nav className="lp-nav">

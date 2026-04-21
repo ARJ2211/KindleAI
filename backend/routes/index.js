@@ -3,6 +3,7 @@ import bookRoutes from "./booksRoutes.js";
 import libraryRoutes from "./userLibraryRoutes.js";
 import ttsRoutes from "./ttsRoutes.js";
 import annotationRoutes from "./annotationRoutes.js";
+import analyticsRoutes from "./analyticsRoutes.js";
 
 const constructorMethod = (app) => {
     app.use("/user", userRoutes);
@@ -10,6 +11,7 @@ const constructorMethod = (app) => {
     app.use("/annotation", annotationRoutes);
     app.use("/library", libraryRoutes);
     app.use("/tts", ttsRoutes);
+    app.use("/analytics", analyticsRoutes)
     app.use("/*splat", (req, res, next) => {
         if (req.originalUrl.startsWith("/socket.io")) return next();
         return res.status(404).json({ error: "ERROR: route not found" });
