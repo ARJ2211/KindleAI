@@ -62,6 +62,7 @@ export default function Library({ onUpload, uploading, onAlert }) {
     const handleAdd = async (book) => {
         try {
             await api.post(`/library/${book._id}`);
+            setMyBookIds((prev) => new Set([...prev, book._id]));
             onAlert?.({
                 message: `"${book.title}" added to My Books`,
                 severity: "success",
