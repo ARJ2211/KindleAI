@@ -5,7 +5,7 @@ const issues = [
     {
         index: "01",
         title: "Page Tracking Inconsistencies",
-        body: "Page positions are sometimes not tracked accurately. This is a known limitation of epub.js and is not specific to this application. The library's internal CFI (Canonical Fragment Identifier) system can occasionally misreport the current location, especially in books with complex layouts or non-standard chapter structures.",
+        body: "Page positions are sometimes not tracked accurately. This is a known limitation of epub.js and is not specific to this application. The library can occasionally misreport the current location, especially in books with complex layouts or non-standard chapter structures.",
         ref: {
             label: "futurepress/epub.js#895",
             href: "https://github.com/futurepress/epub.js/issues/895",
@@ -14,7 +14,7 @@ const issues = [
     {
         index: "02",
         title: "Notes and Bookmarks May Fail to Save on Untracked Pages",
-        body: "If the current page has not been properly resolved by epub.js, the notes and bookmarks panels may silently fail to save — the page anchor is undefined in this state, so no location can be associated with the entry. To resolve this, navigate to the next page and return to the previous one. The page will then be correctly identified and both notes and bookmarks will save as expected.",
+        body: "If the current page has not been properly resolved by epub.js, saving a note or bookmark may silently fail. This happens because no location can be associated with the entry. The fix is simple: navigate to the next page and come back to the previous one. After that, the page will be correctly identified and both notes and bookmarks will save as expected.",
         ref: {
             label: "futurepress/epub.js#691",
             href: "https://github.com/futurepress/epub.js/issues/691",
@@ -23,7 +23,7 @@ const issues = [
     {
         index: "03",
         title: "Resume Position May Have a Small Offset",
-        body: "Reading progress is saved accurately as a percentage of the book. However, when reopening a book, epub.js may restore you to a position slightly off from where you left. This is a side effect of the same CFI tracking issue — the stored location may not map back to the exact rendered position on the next load. Progress is correct; only the visual anchor may shift slightly.",
+        body: "Reading progress is saved accurately as a percentage of the book. However, when reopening a book, epub.js may bring you back to a position that is slightly off from where you left. This is a side effect of the same page tracking issue above. Progress itself is correct and only the visual position may shift by a small amount.",
         ref: {
             label: "futurepress/epub.js#895",
             href: "https://github.com/futurepress/epub.js/issues/895",
