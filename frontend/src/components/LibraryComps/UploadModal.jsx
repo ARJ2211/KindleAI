@@ -84,9 +84,9 @@ export default function UploadModal({
                             uploading many books at once. Each upload spawns a
                             Node worker that loads the embedding model fresh
                             into memory. This was done to keep the Express
-                            server unblocked since running embeddings inline was
-                            preventing all other API calls from going through
-                            during indexing.
+                            server unblocked since running embeddings purely on
+                            network IO (Express.js) was causeing the server to
+                            slow down and block any other API calls.
                         </Typography>
                         <Typography sx={sx.noticeBody} mt={1}>
                             The embedding model (
@@ -97,11 +97,11 @@ export default function UploadModal({
                                     fontSize: "0.72rem",
                                 }}
                             >
-                                Xenova/all-MiniLM-L6-v2
+                                Xenova/bge-large-en-v1.5
                             </span>
                             ) is approximately{" "}
-                            <span style={{ color: "#a1a1aa" }}>23 MB</span> and
-                            is re-loaded into memory for every upload. On
+                            <span style={{ color: "#a1a1aa" }}>1.34 GB</span>{" "}
+                            and is re-loaded into memory for every upload. On
                             machines with limited RAM, back-to-back uploads can
                             cause slowdowns or failures.
                         </Typography>
@@ -124,10 +124,6 @@ export default function UploadModal({
                                 </Box>
                             ))}
                         </Box>
-                        <Typography sx={sx.metricsNote}>
-                            Figures reflect stable sequential uploads before
-                            memory pressure was observed.
-                        </Typography>
                     </Box>
 
                     <Divider sx={sx.divider} />
