@@ -64,8 +64,8 @@ export default function LibraryBar({
 
             <Button
                 variant="contained"
-                component="label"
                 disabled={uploading}
+                onClick={onUpload}
                 startIcon={
                     uploading ? (
                         <CircularProgress size={16} sx={{ color: "#fff" }} />
@@ -76,7 +76,6 @@ export default function LibraryBar({
                 sx={styles.uploadBtn}
             >
                 {uploading ? "Uploading..." : "Upload EPUB"}
-                <input type="file" accept=".epub" hidden onChange={onUpload} />
             </Button>
         </Box>
     );
