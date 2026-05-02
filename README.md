@@ -1,3 +1,9 @@
+### NOTES:
+
+- STOP MONGO AND REDIS services on local devices since docker will throw out an error stating that the respective ports are already in use!!!!
+
+### HOW TO RUN:
+
 Just do a docker-compose up -d or run the individual services as needed
 
 - docker compose up kindleai-redis
@@ -8,6 +14,8 @@ use the following commands after adding a package
 
 - docker rm kindleai-backend
 - docker compose up backend --build
+
+### SPEECH TO TEXT
 
 Speech to text docs
 
