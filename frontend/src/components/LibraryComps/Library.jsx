@@ -3,6 +3,7 @@ import { Box, Typography, CircularProgress } from "@mui/material";
 import AutoStoriesIcon from "@mui/icons-material/AutoStories";
 import BookCard from "./BookCard.jsx";
 import LibraryBar from "./LibraryBar.jsx";
+import UploadModal from "./UploadModal.jsx";
 import api from "../../api/axios.js";
 
 export default function Library({ onUpload, uploading, onAlert }) {
@@ -17,6 +18,8 @@ export default function Library({ onUpload, uploading, onAlert }) {
 
     const [myBookIds, setMyBookIds] = useState(new Set());
 
+    const [uploadModalOpen, setUploadModalOpen] = useState(false);
+
     const fetchLibrary = async () => {
         try {
             const res = await api.get("/book/library");
@@ -28,15 +31,21 @@ export default function Library({ onUpload, uploading, onAlert }) {
         }
     };
 
-    const fetchMyBooks = async () =>{
+    const fetchMyBooks = async () => {
         try {
             const res = await api.get("/library");
             const ids = new Set(res.data.map((b) => b._id));
-            setMyBookIds(ids)
+            setMyBookIds(ids);
         } catch (error) {
-            setError(error.message)
+            setError(error.message);
         }
-    }
+    };
+
+    useEffect(() => {
+        if (!uploading) {
+            setUploadModalOpen(false);
+        }
+    }, [uploading]);
 
     useEffect(() => {
         fetchLibrary();
@@ -115,7 +124,10 @@ export default function Library({ onUpload, uploading, onAlert }) {
     return (
         <Box>
             <LibraryBar
-                onUpload={onUpload}
+                onUpload={() => {
+                    setUploadModalOpen(true);
+                    console.log("MODAL OPEN");
+                }} // open the modal now
                 uploading={uploading}
                 filters={filters}
                 onFilterChange={setFilters}
@@ -150,6 +162,15 @@ export default function Library({ onUpload, uploading, onAlert }) {
                     ))}
                 </Box>
             )}
+
+            <UploadModal
+                open={uploadModalOpen}
+                onClose={() => !uploading && setUploadModalOpen(false)}
+                onFileSelect={(file) => {
+                    onUpload(file); // starts upload, sets uploading=true in HomePage
+                }}
+                uploading={uploading}
+            />
         </Box>
     );
 }
