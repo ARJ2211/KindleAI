@@ -19,6 +19,12 @@ import TtsControls from "../components/ReaderComps/TtsControls.jsx";
 import ChapterList from "../components/ReaderComps/ChapterList.jsx";
 import LlmChat from "../components/AiChat/LlmChat.jsx";
 import NotesModal from "../components/ReaderComps/NotesModal.jsx";
+import BookmarkBorderIcon from "@mui/icons-material/BookmarkBorder";
+import BookmarksPanel from "../components/ReaderComps/BookmarksPanel.jsx";
+import HighlightPopup from "../components/ReaderComps/HighlightPopup.jsx";
+import HighlightsPanel from "../components/ReaderComps/HighlightsPanel.jsx";
+import ReadMeModal from "../components/ReaderComps/ReadMeModal.jsx";
+import HighlightIcon from "@mui/icons-material/Highlight";
 
 const readerStyles = {
     container: { overflow: "hidden", height: "100%" },
@@ -63,13 +69,135 @@ export default function ReaderPage() {
     const [notesList, setNotesList] = useState([]);
     const [notesOpen, setNotesOpen] = useState(false);
 
+    const [bookmarksOpen, setBookmarksOpen] = useState(false);
+    const [highlightSelection, setHighlightSelection] = useState(null);
+    const [savingHighlight, setSavingHighlight] = useState(false);
+    const [highlights, setHighlights] = useState([]);
+    const [highlightsOpen, setHighlightsOpen] = useState(false);
+
+    const [readMeOpen, setReadMeOpen] = useState(false);
+
     const handleCountChange = useCallback((count, list) => {
         setNoteCount(count);
         setNotesList(list);
     }, []);
 
+    const loadAndApplyHighlights = useCallback(async () => {
+        if (!bookId || !renditionRef.current) {
+            return;
+        }
+        try {
+            const res = await api.get(`/annotation/${bookId}?type=highlight`);
+            const data = res.data || [];
+            setHighlights(data);
+            data.forEach((h) => {
+                try {
+                    renditionRef.current.annotations.add(
+                        "highlight",
+                        h.chapter,
+                        {},
+                        null,
+                        "hl",
+                        {
+                            fill: "rgba(167, 139, 250, 0.25)",
+                            "fill-opacity": "1",
+                        },
+                    );
+                } catch (error) {
+                    console.warn("[highlight] Could not apply:", error.message);
+                }
+            });
+        } catch (error) {
+            console.warn("[highlights] Failed to load:", error.message);
+        }
+    }, [bookId]);
+
+    const handleHighlight = useCallback(async () => {
+        if (!highlightSelection || !bookId) return;
+        setSavingHighlight(true);
+        try {
+            const overlapping = highlights.filter(
+                (h) =>
+                    highlightSelection.text.includes(h.selected_text) ||
+                    h.selected_text?.includes(highlightSelection.text),
+            );
+            for (const h of overlapping) {
+                try {
+                    await api.delete(`/annotation/single/${h._id}`);
+                    renditionRef.current?.annotations.remove(
+                        h.chapter,
+                        "highlight",
+                    );
+                } catch (err) {
+                    console.warn(
+                        "[highlight] Overlap removal failed:",
+                        err.message,
+                    );
+                }
+            }
+            const overlapIds = new Set(overlapping.map((h) => h._id));
+
+            const res = await api.post(`/annotation/${bookId}`, {
+                type: "highlight",
+                chapter: highlightSelection.cfi,
+                selected_text: highlightSelection.text,
+            });
+            renditionRef.current?.annotations.add(
+                "highlight",
+                highlightSelection.cfi,
+                {},
+                null,
+                "hl",
+                { fill: "rgba(167, 139, 250, 0.25)", "fill-opacity": "1" },
+            );
+            setHighlights((prev) => [
+                ...prev.filter((h) => !overlapIds.has(h._id)),
+                res.data,
+            ]);
+            selectionContentsRef.current?.window
+                .getSelection()
+                .removeAllRanges();
+            setHighlightSelection(null);
+        } catch (error) {
+            console.warn("[highlight] Save failed:", error.message);
+        } finally {
+            setSavingHighlight(false);
+        }
+    }, [bookId, highlightSelection, highlights]);
+
+    const handleRemoveHighlight = useCallback(async () => {
+        if (!highlightSelection) return;
+        const match = highlights.find(
+            (h) => h.chapter === highlightSelection.cfi,
+        );
+        if (!match) return;
+        try {
+            await api.delete(`/annotation/single/${match._id}`);
+            renditionRef.current?.annotations.remove(
+                highlightSelection.cfi,
+                "highlight",
+            );
+            setHighlights((prev) => prev.filter((h) => h._id !== match._id));
+        } catch (error) {
+            console.warn("[highlight] Remove failed:", error.message);
+        }
+        selectionContentsRef.current?.window.getSelection()?.removeAllRanges();
+        setHighlightSelection(null);
+    }, [highlightSelection, highlights]);
+
+    const handleAnnotationRemoved = useCallback((cfi, id) => {
+        renditionRef.current?.annotations.remove(cfi, "highlight");
+        setHighlights((prev) => prev.filter((h) => h._id.toString() !== id));
+    }, []);
+
+    const dismissHighlight = useCallback(() => {
+        selectionContentsRef.current?.window.getSelection()?.removeAllRanges();
+        setHighlightSelection(null);
+    }, []);
+
     const saveTimerRef = useRef(null);
     const renditionRef = useRef(null);
+    const selectionContentsRef = useRef(null);
     const locationsReadyRef = useRef(false);
     const finishedBookRef = useRef(false);
     const settledRef = useRef(false);
@@ -100,6 +228,11 @@ export default function ReaderPage() {
             })
             .catch(() => {});
     }, [bookId, settled]);
+
+    useEffect(() => {
+        if (!settled) return;
+        loadAndApplyHighlights();
+    }, [settled, loadAndApplyHighlights]);
 
     useEffect(() => {
         const init = async () => {
@@ -182,6 +315,14 @@ export default function ReaderPage() {
             rendition.themes.register("dark", DARK_THEME);
             rendition.themes.select("dark");
             rendition.themes.fontSize("105%");
+
+            rendition.on("selected", (cfiRange, contents) => {
+                const text = contents.window.getSelection()?.toString().trim();
+                if (text && text.length > 0) {
+                    selectionContentsRef.current = contents;
+                    setHighlightSelection({ cfi: cfiRange, text });
+                }
+            });
 
             rendition.hooks.content.register((contents) => {
                 const doc = contents.document;
@@ -274,8 +415,60 @@ export default function ReaderPage() {
                     </Box>
                 )}
 
+                <Box sx={{ flex: 1 }} />
+
+                <Box
+                    onClick={() => setReadMeOpen(true)}
+                    sx={{
+                        cursor: "pointer",
+                        px: 1.5,
+                        py: 0.4,
+                        borderRadius: "8px",
+                        border: "1px solid rgba(0, 224, 255, 0.15)",
+                        background: "rgba(0, 224, 255, 0.04)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 0.5,
+                        transition: "all 0.2s",
+                        "&:hover": {
+                            background: "rgba(0, 224, 255, 0.09)",
+                            borderColor: "rgba(0, 224, 255, 0.35)",
+                        },
+                    }}
+                >
+                    <Typography
+                        sx={{
+                            fontFamily: "'DM Sans', sans-serif",
+                            fontSize: "0.72rem",
+                            color: "#00c8e0",
+                            letterSpacing: "0.04em",
+                            fontWeight: 500,
+                        }}
+                    >
+                        Read Me
+                    </Typography>
+                </Box>
+
                 {/* Spacer to push notes dot to the right */}
                 <Box sx={{ flex: 1 }} />
+
+                <Tooltip title="Highlights">
+                    <IconButton
+                        onClick={() => setHighlightsOpen((p) => !p)}
+                        sx={sx.backBtn}
+                    >
+                        <HighlightIcon fontSize="small" />
+                    </IconButton>
+                </Tooltip>
+
+                <Tooltip title="Bookmarks">
+                    <IconButton
+                        onClick={() => setBookmarksOpen((p) => !p)}
+                        sx={sx.backBtn}
+                    >
+                        <BookmarkBorderIcon fontSize="small" />
+                    </IconButton>
+                </Tooltip>
 
                 {/* Notes dot — right side of topBar */}
                 <Tooltip
@@ -300,7 +493,7 @@ export default function ReaderPage() {
                                 lineHeight: 1,
                             }}
                         >
-                            Notes
+                            {`Notes (${noteCount})`}
                         </Typography>
                         <Box
                             sx={currentPageHasNotes ? sx.dotGreen : sx.dotRed}
@@ -363,6 +556,32 @@ export default function ReaderPage() {
                 onClose={() => setNotesOpen(false)}
                 onCountChange={handleCountChange}
                 onNavigate={(cfi) => renditionRef.current?.display(cfi)}
+            />
+            <BookmarksPanel
+                bookId={bookId}
+                currentCfi={currentCfi}
+                open={bookmarksOpen}
+                onClose={() => setBookmarksOpen(false)}
+                onNavigate={(cfi) => renditionRef.current?.display(cfi)}
+            />
+            <HighlightsPanel
+                open={highlightsOpen}
+                onClose={() => setHighlightsOpen(false)}
+                onNavigate={(cfi) => renditionRef.current?.display(cfi)}
+                onRemoved={handleAnnotationRemoved}
+                highlights={highlights}
+            />
+            <HighlightPopup
+                selection={highlightSelection}
+                saving={savingHighlight}
+                highlights={highlights}
+                onConfirm={handleHighlight}
+                onDismiss={dismissHighlight}
+                onRemove={handleRemoveHighlight}
+            />
+            <ReadMeModal
+                open={readMeOpen}
+                onClose={() => setReadMeOpen(false)}
             />
         </Box>
     );

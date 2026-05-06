@@ -19,30 +19,21 @@ export default function HomePage() {
     const [alert, setAlert] = useState(null);
     const [refreshKey, setRefreshKey] = useState(0);
 
-    const handleUpload = async (e) => {
-        const file = e.target.files[0];
+    const handleUpload = async (file) => {
         if (!file) return;
-
         setUploading(true);
         setAlert(null);
-
         try {
             const formData = new FormData();
             formData.append("epub", file);
-
             const res = await api.post("/book/upload_book", formData);
-
             setAlert({
                 message: res.data.deduplicated
                     ? `"${res.data.book.title}" already in library`
                     : `"${res.data.book.title}" uploaded successfully`,
                 severity: res.data.deduplicated ? "warning" : "success",
             });
-
-            // Refresh library after successful upload
-            if (!res.data.deduplicated) {
-                setRefreshKey((prev) => prev + 1);
-            }
+            if (!res.data.deduplicated) setRefreshKey((prev) => prev + 1);
         } catch (err) {
             setAlert({
                 message: err.response?.data?.msg || err.message,
@@ -50,7 +41,6 @@ export default function HomePage() {
             });
         } finally {
             setUploading(false);
-            e.target.value = "";
         }
     };
 
@@ -68,7 +58,7 @@ export default function HomePage() {
             case "My Books":
                 return <MyBooks onAlert={setAlert} />;
             case "My Reading":
-                return <MyReading onAlert={setAlert} />
+                return <MyReading onAlert={setAlert} />;
             default:
                 return null;
         }
