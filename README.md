@@ -1,60 +1,74 @@
-### NOTES:
+# KindleAI
 
-- STOP MONGO AND REDIS services on local devices since docker will throw out an error stating that the respective ports are already in use!!!!
+A web e-reader with a built-in AI assistant. Upload EPUBs, read in the browser, listen with text-to-speech, and ask questions about what you are reading.
 
-### HOW TO RUN:
+**Group:** Developers in Paris
+**Repository:** [github.com/ARJ2211/KindleAI](https://github.com/ARJ2211/KindleAI)
 
-Just do a docker-compose up -d or run the individual services as needed
+---
 
-- docker compose up kindleai-redis
-- docker compose up kindleai-qdrant
-- docker compose up kindleai-backend
+## Setup
 
-use the following commands after adding a package
+The submitted zip includes a `.env` file and a `serviceAccountKey.json` for Firebase. Place both inside the `backend/` directory before starting.
 
-- docker rm kindleai-backend
-- docker compose up backend --build
+> **Stop any local MongoDB or Redis instances first.** If ports `27017` or `6379` are already in use, the containers will fail to start.
+>
+> macOS: `brew services stop mongodb-community && brew services stop redis`
+>
+> Linux: `sudo systemctl stop mongod && sudo systemctl stop redis`
 
-### SPEECH TO TEXT
+---
 
-Speech to text docs
-
-- [Horrible but it works :p](https://codesandbox.io/p/sandbox/text-to-speech-demo-umlkzv)
-
-React Reader
-
-- [git repo] (https://github.com/gerhardsletten/react-reader)
-
-### Ollama (book assistant / RAG)
-
-The reader Book assistant calls Ollama over HTTP from the backend (`services/ollamaStream.js`).
-
-Docker Compose (default):
-
-- Services `ollama` and `ollama-pull` run the server and download `llama3.2:3b` into the `ollama_data` volume (the pull container waits for the API, then exits; the backend waits until that finishes successfully).
-- The backend uses `OLLAMA_URL=http://ollama:11434` on the Compose network.
+## Starting the App
 
 ```bash
 docker compose up --build
 ```
 
-First startup can take a while while the model downloads. If `kindleai-ollama-pull` fails, check logs: `docker compose logs ollama-pull`.
+This starts all services: frontend, backend, MongoDB, Redis, Qdrant, and Ollama. On first run, Docker will pull all images and download the `llama3.2:3b` model into a local volume. This can take several minutes depending on your connection. Subsequent starts are fast.
 
-Host Ollama instead (e.g. macOS app): set `OLLAMA_URL` to `http://host.docker.internal:11434` for the backend (env or a local `docker-compose.override.yml`).
+The app will be available at `http://localhost:5173`.
 
-Backend on the host (`npm run dev` in `backend/`): defaults to `http://127.0.0.1:11434` if `OLLAMA_URL` is unset; install Ollama locally and `ollama pull` the same model as `OLLAMA_MODEL`.
+If `kindleai-ollama-pull` exits with an error, check what went wrong:
 
-Optional env vars (see `backend/config/settings.js`): `OLLAMA_URL`, `OLLAMA_MODEL`, `OLLAMA_TIMEOUT_MS`. If you change `OLLAMA_MODEL`, update the `ollama pull` line in `docker-compose.yml` for the one-shot service (or pull manually inside the container).
+```bash
+docker compose logs ollama-pull
+```
+
+---
+
+## Stopping the App
+
+To stop without losing data:
+
+```bash
+docker compose down
+```
+
+To stop and delete all local data (volumes):
+
+```bash
+docker compose down -v
+```
+
+---
+
+## Rebuilding After Code Changes
+
+If you add a package to the backend or frontend, remove the old container and rebuild:
+
+```bash
+docker rm kindleai-backend
+docker compose up kindleai-backend --build
+```
+
+---
 
 ## Known Issues
 
-### Page Position (epub.js CFI Bug)
+**Page position (epub.js CFI bug):** When opening a book or navigating to a note, the reader may land one page before the correct location. This is a known upstream bug in epub.js with no available fix.
 
-When opening a book or clicking a note from a different page, the reader sometimes
-opens one page before the correct page. This is a known bug in the epub.js
-library that we are using for rendering. Sadly we have no control over it.
+- [epub.js issue #895](https://github.com/futurepress/epub.js/issues/895)
+- [epub.js issue #691](https://github.com/futurepress/epub.js/issues/691)
 
-Reference 1: https://github.com/futurepress/epub.js/issues/895
-Reference 2: https://github.com/futurepress/epub.js/issues/691
-
-**Workaround:** Press the next page button once if you are not on the correct page.
+Workaround: press the next page button once if the page looks wrong.
