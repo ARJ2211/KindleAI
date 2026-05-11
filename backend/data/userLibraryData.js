@@ -61,6 +61,28 @@ export const addBookToLibrary = async (userId, bookId) => {
 };
 
 /**
+ * Remove all user_library entries for a book across every user.
+ * Called when a book is deleted from the global library.
+ *
+ * @param {string} bookId MongoDB ObjectId string
+ * @returns {number} number of entries removed
+ */
+export const removeBookFromAllLibraries = async (bookId) => {
+    bookId = helper.isValidString(bookId);
+
+    if (!ObjectId.isValid(bookId)) {
+        helper.throwError(400, `Invalid book ID: ${bookId}`);
+    }
+
+    const col = await user_library();
+    const result = await col.deleteMany({
+        book_id: new ObjectId(bookId),
+    });
+
+    return result.deletedCount;
+};
+
+/**
  * Remove a book from the user's personal library.
  * Does NOT delete the book from the global library.
  *

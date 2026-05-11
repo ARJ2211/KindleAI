@@ -11,6 +11,8 @@ import { parseEpub } from "../utils/epubParser.js";
 import * as helper from "../helper.js";
 import * as redis from "../config/redisClient.js";
 import * as bookData from "../data/bookData.js";
+import { removeBookFromAllLibraries } from "../data/userLibraryData.js";
+import { deleteAllAnnotationsForBookGlobal } from "../data/annotationData.js";
 import { emitIngestProgress } from "../socket/ingestHandler.js";
 
 const upload = await getUpload();
@@ -188,6 +190,9 @@ router
                         .status(500)
                         .json({ msg: "Internal Server Error" });
                 }
+
+                await removeBookFromAllLibraries(id);
+                await deleteAllAnnotationsForBookGlobal(id);
 
                 return res
                     .status(200)

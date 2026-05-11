@@ -320,3 +320,25 @@ export const deleteAllAnnotationsForBook = async (userId, bookId) => {
 
     return result.deletedCount;
 };
+
+/**
+ * Delete all annotations for a book across every user.
+ * Called when a book is deleted from the global library.
+ *
+ * @param {string} bookId MongoDB ObjectId string
+ * @returns {number} number of annotations removed
+ */
+export const deleteAllAnnotationsForBookGlobal = async (bookId) => {
+    bookId = helper.isValidString(bookId);
+
+    if (!ObjectId.isValid(bookId)) {
+        helper.throwError(400, `Invalid book ID: ${bookId}`);
+    }
+
+    const col = await annotations();
+    const result = await col.deleteMany({
+        book_id: new ObjectId(bookId),
+    });
+
+    return result.deletedCount;
+};
